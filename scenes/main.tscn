@@ -1,0 +1,93 @@
+[gd_scene format=3 uid="uid://b80iey4bg58yl"]
+
+[ext_resource type="MeshLibrary" uid="uid://bq5ttnd3220w3" path="res://tiles/tiles.tres" id="1_tiles"]
+[ext_resource type="Script" uid="uid://b430debv0718q" path="res://scripts/city_grid.gd" id="2_grid"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3_player"]
+[ext_resource type="PackedScene" path="res://scenes/camera_rig.tscn" id="4_camera"]
+[ext_resource type="PackedScene" path="res://scenes/dummy_enemy.tscn" id="5_dummy"]
+[ext_resource type="Script" uid="uid://4wn5lcvr4qng" path="res://scripts/hud.gd" id="6_hud"]
+[ext_resource type="PackedScene" path="res://scenes/water.tscn" id="7_water"]
+[ext_resource type="PackedScene" path="res://scenes/weapon_pickup.tscn" id="8_pickup"]
+[ext_resource type="Resource" path="res://weapons/baseball_bat.tres" id="9_bat"]
+[ext_resource type="PackedScene" path="res://scenes/spawn_door.tscn" id="10_door"]
+[ext_resource type="Resource" path="res://weapons/knife.tres" id="11_knife"]
+[ext_resource type="Resource" path="res://weapons/brass_knuckles.tres" id="12_brass"]
+
+[sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
+sky_top_color = Color(0.25, 0.2, 0.42, 1)
+sky_horizon_color = Color(0.95, 0.6, 0.42, 1)
+ground_bottom_color = Color(0.12, 0.1, 0.12, 1)
+ground_horizon_color = Color(0.95, 0.6, 0.42, 1)
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_source = 3
+tonemap_mode = 2
+
+[node name="Main" type="Node3D" unique_id=468469897]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1345119474]
+environment = SubResource("env")
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=394922460]
+transform = Transform3D(0.62161, -0.533946, 0.5731516, 0, 0.73168886, 0.6816388, -0.7833269, -0.42371348, 0.4548251, 0, 0, 0)
+light_color = Color(1, 0.85, 0.65, 1)
+light_energy = 1.2
+shadow_enabled = true
+
+[node name="CityGrid" type="GridMap" parent="." unique_id=70170018]
+mesh_library = ExtResource("1_tiles")
+cell_size = Vector3(1, 1, 1)
+cell_center_y = false
+script = ExtResource("2_grid")
+
+[node name="Water" parent="." unique_id=901598809 instance=ExtResource("7_water")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.15, 0)
+
+[node name="Player" parent="." unique_id=2016112685 node_paths=PackedStringArray("camera_rig") instance=ExtResource("3_player")]
+camera_rig = NodePath("../CameraRig")
+
+[node name="CameraRig" parent="." unique_id=77332290 node_paths=PackedStringArray("target") instance=ExtResource("4_camera")]
+target = NodePath("../Player")
+
+[node name="Dummy1" parent="." unique_id=362074729 instance=ExtResource("5_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0, 2.5)
+
+[node name="Dummy2" parent="." unique_id=839652651 instance=ExtResource("5_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 0, 4.5)
+starting_weapon = ExtResource("9_bat")
+
+[node name="Dummy3" parent="." unique_id=1962062281 instance=ExtResource("5_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 0, 0.5)
+
+[node name="BaseballBat" parent="." instance=ExtResource("8_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, -1)
+weapon = ExtResource("9_bat")
+
+[node name="Knife" parent="." instance=ExtResource("8_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 0.5)
+weapon = ExtResource("11_knife")
+
+[node name="BrassKnuckles" parent="." instance=ExtResource("8_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 3)
+weapon = ExtResource("12_brass")
+
+[node name="SpawnDoorWest" parent="." instance=ExtResource("10_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -3)
+
+[node name="SpawnDoorEast" parent="." instance=ExtResource("10_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, -3)
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1092382727]
+
+[node name="Help" type="Label" parent="HUD" unique_id=1501232825 node_paths=PackedStringArray("player")]
+offset_left = 12.0
+offset_top = 8.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+script = ExtResource("6_hud")
+player = NodePath("../../Player")

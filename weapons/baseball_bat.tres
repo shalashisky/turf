@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://art/baseball_bat.png" id="2_texture"]
+
+[resource]
+script = ExtResource("1_script")
+display_name = "Baseball Bat"
+texture = ExtResource("2_texture")
+grip_pixels = 2
+damage = 34
+reach = 2.2
+arc_degrees = 150.0
+knockback = 9.0
+knockback_lift = 3.5
+swing_time = 0.2
+cooldown = 0.35

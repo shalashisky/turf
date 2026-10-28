@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://art/brass_knuckles.png" id="2_texture"]
+
+[resource]
+script = ExtResource("1_script")
+display_name = "Brass Knuckles"
+texture = ExtResource("2_texture")
+swing_style = 1
+visible_when_idle = false
+jab_distance = 0.45
+grip_pixels = 1
+damage = 20
+reach = 1.4
+arc_degrees = 90.0
+knockback = 4.0
+knockback_lift = 1.8
+swing_time = 0.16
+cooldown = 0.25

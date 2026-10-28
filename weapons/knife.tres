@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://art/knife.png" id="2_texture"]
+
+[resource]
+script = ExtResource("1_script")
+display_name = "Knife"
+texture = ExtResource("2_texture")
+swing_style = 1
+visible_when_idle = true
+jab_distance = 0.6
+grip_pixels = 3
+damage = 22
+reach = 1.75
+arc_degrees = 70.0
+knockback = 3.5
+knockback_lift = 1.5
+swing_time = 0.15
+cooldown = 0.28

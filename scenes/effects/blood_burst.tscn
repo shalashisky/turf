@@ -1,0 +1,54 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/burst.gd" id="1_script"]
+
+[sub_resource type="Curve" id="shrink"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.8, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="shrink_texture"]
+curve = SubResource("shrink")
+
+[sub_resource type="Gradient" id="shades"]
+colors = PackedColorArray(0.45, 0.02, 0.03, 1, 0.85, 0.1, 0.1, 1)
+
+[sub_resource type="GradientTexture1D" id="shades_texture"]
+gradient = SubResource("shades")
+
+[sub_resource type="ParticleProcessMaterial" id="spray"]
+emission_shape = 1
+emission_sphere_radius = 0.15
+direction = Vector3(0, 1, 0)
+spread = 35.0
+initial_velocity_min = 2.5
+initial_velocity_max = 5.5
+gravity = Vector3(0, -14, 0)
+scale_min = 0.7
+scale_max = 1.4
+scale_curve = SubResource("shrink_texture")
+color_initial_ramp = SubResource("shades_texture")
+collision_mode = 1
+collision_friction = 0.5
+collision_bounce = 0.45
+
+[sub_resource type="StandardMaterial3D" id="square_mat"]
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 3
+billboard_keep_scale = true
+
+[sub_resource type="QuadMesh" id="square"]
+material = SubResource("square_mat")
+size = Vector2(0.08, 0.08)
+
+[node name="BloodBurst" type="GPUParticles3D"]
+layers = 2
+emitting = false
+amount = 16
+lifetime = 2.5
+one_shot = true
+explosiveness = 1.0
+collision_base_size = 0.08
+process_material = SubResource("spray")
+draw_pass_1 = SubResource("square")
+script = ExtResource("1_script")

@@ -1,0 +1,51 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/burst.gd" id="1_script"]
+
+[sub_resource type="Curve" id="shrink"]
+_data = [Vector2(0, 0.6), 0.0, 0.0, 0, 0, Vector2(0.3, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="shrink_texture"]
+curve = SubResource("shrink")
+
+[sub_resource type="Gradient" id="fade"]
+colors = PackedColorArray(0.82, 0.78, 0.7, 0.9, 0.82, 0.78, 0.7, 0)
+
+[sub_resource type="GradientTexture1D" id="fade_texture"]
+gradient = SubResource("fade")
+
+[sub_resource type="ParticleProcessMaterial" id="puff"]
+emission_shape = 1
+emission_sphere_radius = 0.2
+direction = Vector3(0, 1, 0)
+spread = 80.0
+initial_velocity_min = 0.8
+initial_velocity_max = 1.8
+gravity = Vector3(0, -1, 0)
+damping_min = 3.0
+damping_max = 4.0
+scale_curve = SubResource("shrink_texture")
+color_ramp = SubResource("fade_texture")
+
+[sub_resource type="StandardMaterial3D" id="square_mat"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 3
+billboard_keep_scale = true
+
+[sub_resource type="QuadMesh" id="square"]
+material = SubResource("square_mat")
+size = Vector2(0.09, 0.09)
+
+[node name="DustPuff" type="GPUParticles3D"]
+layers = 2
+emitting = false
+amount = 10
+lifetime = 0.4
+one_shot = true
+explosiveness = 1.0
+process_material = SubResource("puff")
+draw_pass_1 = SubResource("square")
+script = ExtResource("1_script")

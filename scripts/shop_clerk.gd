@@ -14,6 +14,8 @@ extends Node3D
 	{"label": "Tec-9", "price": 140, "weapon": preload("res://weapons/tec9.tres")},
 	{"label": "Molotovs (x3)", "price": 45, "weapon": preload("res://weapons/molotov.tres")},
 	{"label": "Weed Seeds (x3)", "price": 12, "item": "weed_seed", "count": 3},
+	{"label": "Burger", "price": 10, "item": "burger", "count": 1},
+	{"label": "Cocaine", "price": 60, "item": "cocaine", "count": 1},
 ]
 
 @onready var _use: Interactable = $Use

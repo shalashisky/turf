@@ -33,13 +33,23 @@ func _process(delta: float) -> void:
 	if _name_left > 0.0:
 		_name_left -= delta
 		queue_redraw()
+	if _rush_left() > 0.0:
+		queue_redraw()
+
+
+func _rush_left() -> float:
+	var player := get_tree().get_first_node_in_group("player")
+	return player.get("rush_left") if player and player.get("rush_left") else 0.0
 
 
 func _show_name() -> void:
 	var stack: Variant = Inventory.selected_slot()
 	_name_text = Inventory.name_of(stack)
-	if Inventory.item_in(Inventory.selected) == "weed":
+	var item := Inventory.item_in(Inventory.selected)
+	if item == "weed":
 		_name_text += "  -  $%d a bag today, more on rival turf" % WorldState.weed_price()
+	elif item in WorldState.CONSUMABLES:
+		_name_text += "  -  attack (LMB / RT) to use"
 	_name_left = NAME_TIME if _name_text != "" else 0.0
 	queue_redraw()
 
@@ -65,6 +75,12 @@ func _draw() -> void:
 		draw_string(font, box.position + Vector2(4.0, 13.0), str((i + 1) % 10), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.5))
 		var selected := i == Inventory.selected
 		draw_rect(box, SELECTED_COLOR if selected else BORDER_COLOR, false, 3.0 if selected else 1.5)
+
+	var rush := _rush_left()
+	if rush > 0.0:
+		var label := "RUSH  %ds" % ceili(rush)
+		draw_string_outline(font, Vector2(0.0, -34.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 5, Color.BLACK)
+		draw_string(font, Vector2(0.0, -34.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.95, 1.0))
 
 	if _name_left > 0.0 and _name_text != "":
 		var alpha := clampf(_name_left / 0.4, 0.0, 1.0)

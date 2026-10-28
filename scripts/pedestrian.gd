@@ -44,6 +44,8 @@ const SNITCH_DELAY := 2.5
 ## loaded when they're handed over.
 const TRADE_GOODS := [
 	{"item": "weed_seed", "count": 2},
+	{"item": "burger", "count": 1},
+	{"item": "cocaine", "count": 1},
 	{"weapon": "res://weapons/knife.tres"},
 	{"weapon": "res://weapons/brass_knuckles.tres"},
 	{"weapon": "res://weapons/baseball_bat.tres"},
@@ -263,7 +265,9 @@ func _hand_over(goods: Dictionary, player: Citizen) -> void:
 		call_out("Here, take this %s." % weapon.display_name, Color(1.0, 0.9, 0.5))
 	else:
 		WorldState.add_item(goods.item, goods.count)
-		call_out("Here, %d %ss." % [goods.count, WorldState.item_name(goods.item).to_lower()], Color(1.0, 0.9, 0.5))
+		var name := WorldState.item_name(goods.item).to_lower()
+		var line := "Here, take this %s." % name if goods.count == 1 else "Here, %d %ss." % [goods.count, name]
+		call_out(line, Color(1.0, 0.9, 0.5))
 
 
 func _look_for_a_car_to_steal(delta: float) -> void:

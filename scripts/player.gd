@@ -17,8 +17,18 @@ enum AimMode { MOVE, STICK, MOUSE }
 
 ## Nothing gets thrown closer than this.
 const MIN_THROW_DISTANCE := 2.5
+## A burger heals this much.
+const BURGER_HEALING := 50
+## A bump of cocaine makes you this much faster, for this long.
+const RUSH_SPEED := 1.5
+const RUSH_TIME := 30.0
+## No eating or snorting faster than this.
+const USE_COOLDOWN := 0.6
 
 var aim_mode := AimMode.MOVE
+## Seconds left on a cocaine rush.
+var rush_left := 0.0
+var _use_cooldown_left := 0.0
 
 ## Whether attack was already held last frame, so holding the trigger of an
 ## automatic only costs energy once per burst.
@@ -72,6 +82,38 @@ func _hold_selected() -> void:
 	var shots: int = stack.ammo if weapon else 0
 	if weapon != equipped_weapon or shots != ammo:
 		hold(weapon, shots)
+
+
+## Eats, snorts, or otherwise uses up one `item` from the hotbar.
+func use_item(item: String) -> void:
+	if _use_cooldown_left > 0.0 or is_down:
+		return
+	match item:
+		"burger":
+			if health >= max_health:
+				call_out("Not hungry.")
+				return
+			var healed := mini(BURGER_HEALING, max_health - health)
+			health += healed
+			call_out("+%d" % healed, Color(0.55, 1.0, 0.45))
+		"cocaine":
+			rush_left = RUSH_TIME
+			call_out("Whoa!", Color(0.85, 0.95, 1.0))
+		_:
+			return
+	WorldState.add_item(item, -1)
+	_use_cooldown_left = USE_COOLDOWN
+	_squash(Vector2(0.9, 1.12))
+
+
+func _speed_boost() -> float:
+	return RUSH_SPEED if rush_left > 0.0 else 1.0
+
+
+func _physics_process(delta: float) -> void:
+	super(delta)
+	rush_left = maxf(rush_left - delta, 0.0)
+	_use_cooldown_left -= delta
 
 
 ## Whether the player has weed in hand, to sell.
@@ -169,7 +211,11 @@ func _choose_facing(move_dir: Vector3, delta: float) -> void:
 	if Dialogue.blocks_input():
 		return
 	var trigger := Input.is_action_pressed("attack")
-	if Input.is_action_just_pressed("attack") or (current_weapon().automatic and trigger):
+	var in_hand := Inventory.item_in(Inventory.selected)
+	if in_hand in WorldState.CONSUMABLES:
+		if Input.is_action_just_pressed("attack"):
+			use_item(in_hand)
+	elif Input.is_action_just_pressed("attack") or (current_weapon().automatic and trigger):
 		attack()
 	_trigger_was_held = trigger
 	if Input.is_action_just_pressed("interact"):

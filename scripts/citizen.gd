@@ -481,6 +481,11 @@ func _update_burning(delta: float) -> void:
 		_burn(BURN_DAMAGE)
 
 
+## Hook for anything that speeds them up or slows them down, as a factor.
+func _speed_boost() -> float:
+	return 1.0
+
+
 ## On fire and running around like crazy, instead of whatever they were doing.
 ## Not the player: they're in charge of their own panic.
 func _panics_while_burning() -> bool:
@@ -818,7 +823,7 @@ func _update_swimming() -> void:
 
 func _update_walk_velocity(move_dir: Vector3, delta: float) -> void:
 	var speed := move_speed * (swim_speed_factor if is_swimming else 1.0)
-	speed *= current_weapon().move_speed_factor
+	speed *= current_weapon().move_speed_factor * _speed_boost()
 	if is_blocking:
 		speed *= block_move_factor
 	var target := Vector3(move_dir.x, 0.0, move_dir.z) * speed

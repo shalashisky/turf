@@ -32,7 +32,10 @@ const ATTACK_ENERGY := 1.0
 const PLANT_WORK_ENERGY := 4.0
 
 ## How each inventory item is shown to the player.
-const ITEM_NAMES := {"weed": "Weed", "weed_seed": "Weed Seed"}
+const ITEM_NAMES := {"weed": "Weed", "weed_seed": "Weed Seed", "burger": "Burger", "cocaine": "Cocaine"}
+## Items used up by using them (the attack button, with one in hand). See
+## Player.use_item().
+const CONSUMABLES: Array[String] = ["burger", "cocaine"]
 ## Reputation runs from hated to best friends.
 const REPUTATION_RANGE := Vector2i(-250, 1000)
 

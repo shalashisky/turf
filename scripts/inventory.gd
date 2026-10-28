@@ -18,6 +18,8 @@ const SLOTS := 10
 const ITEM_ICONS := {
 	"weed": preload("res://art/weed_bag.png"),
 	"weed_seed": preload("res://art/seed_packet.png"),
+	"burger": preload("res://art/burger.png"),
+	"cocaine": preload("res://art/cocaine.png"),
 }
 const CASH_ICON := preload("res://art/cash.png")
 

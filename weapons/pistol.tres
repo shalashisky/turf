@@ -18,6 +18,6 @@ knockback_lift = 1.0
 swing_time = 0.12
 cooldown = 0.35
 move_speed_factor = 0.95
-max_ammo = 12
+max_ammo = 40
 projectile_speed = 32.0
 spread_degrees = 3.0

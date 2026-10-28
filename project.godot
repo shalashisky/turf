@@ -85,6 +85,18 @@ block={
 "deadzone": 0.5,
 "events": [Object(InputEventMouseButton,"device":-1,"button_index":2), Object(InputEventKey,"device":-1,"physical_keycode":75), Object(InputEventJoypadMotion,"device":-1,"axis":4,"axis_value":1.0)]
 }
+accelerate={
+"deadzone": 0.2,
+"events": [Object(InputEventJoypadMotion,"device":-1,"axis":5,"axis_value":1.0), Object(InputEventKey,"device":-1,"physical_keycode":87), Object(InputEventKey,"device":-1,"physical_keycode":4194320)]
+}
+brake={
+"deadzone": 0.2,
+"events": [Object(InputEventJoypadMotion,"device":-1,"axis":4,"axis_value":1.0), Object(InputEventKey,"device":-1,"physical_keycode":83), Object(InputEventKey,"device":-1,"physical_keycode":4194322)]
+}
+pause={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":4194305), Object(InputEventKey,"device":-1,"physical_keycode":80), Object(InputEventJoypadButton,"device":-1,"button_index":6)]
+}
 interact={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"device":-1,"physical_keycode":69), Object(InputEventJoypadButton,"device":-1,"button_index":3)]
@@ -118,3 +130,5 @@ Transition="*res://scenes/transition.tscn"
 Dialogue="*res://scenes/dialogue.tscn"
 Factions="*res://scripts/factions.gd"
 DayCycle="*res://scripts/day_cycle.gd"
+Weather="*res://scripts/weather.gd"
+PauseMenu="*res://scripts/pause_menu.gd"

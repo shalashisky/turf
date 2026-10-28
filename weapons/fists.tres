@@ -1,20 +1,12 @@
-[gd_resource type="Resource" script_class="Weapon" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="Weapon" format=3 uid="uid://dc5lkr1hdib5b"]
 
-[ext_resource type="Script" path="res://scripts/weapon.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://art/fist.png" id="2_texture"]
+[ext_resource type="Script" uid="uid://c2a1ccheccata" path="res://scripts/weapon.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://gnwj78lkmwa2" path="res://art/fist.png" id="2_texture"]
 
 [resource]
 script = ExtResource("1_script")
-display_name = "Fists"
 texture = ExtResource("2_texture")
 swing_style = 1
 visible_when_idle = false
-jab_distance = 0.45
 grip_pixels = 1
-damage = 10
-reach = 1.4
-arc_degrees = 90.0
-knockback = 3.0
-knockback_lift = 1.5
 swing_time = 0.16
-cooldown = 0.25

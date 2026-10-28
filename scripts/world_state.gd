@@ -34,7 +34,7 @@ enum TrayState { EMPTY, GROWING, READY }
 
 ## What the player is carrying, by item id. Starts with a few seeds.
 var inventory := {"weed_seed": 3}
-var money := 25
+var money := 250
 ## Spent on attacking and tending plants; refilled by sleeping.
 var energy := MAX_ENERGY
 ## Who holds each Territory, by territory id. Territories not listed are
@@ -42,6 +42,10 @@ var energy := MAX_ENERGY
 var territory_owners := {}
 ## How much each neighbor likes the player, by NPC id.
 var reputation := {}
+## Where the player's car was left and how it was doing, so it's still there
+## after going indoors: {"transform", "health", "wrecked_on_day"}. Empty
+## until the city scene is first left.
+var player_car := {}
 
 ## Hydroponic trays by id: {growth, fed_until, updated_at}, all in minutes.
 var _trays := {}

@@ -15,15 +15,13 @@ signal started
 signal won
 
 const CAR := preload("res://scenes/car.tscn")
-## Cars come in from and leave to this far along their street, past the map's edge.
-const OFFSCREEN_DISTANCE := 42.0
+## Cars come in from, and leave to, this far along their street from the
+## player: off-screen, but still in the loaded part of the city.
+const OFFSCREEN_DISTANCE := 38.0
 ## Cars stop this far short of the player.
 const CAR_STOP_SHORT := 4.0
-## How far right of the street's middle cars drive. Kept small enough that
-## they clear the lamp posts on the curb.
-const LANE_OFFSET := 0.5
 
-@export var kills_to_win := 25
+@export var kills_to_win := 10
 @export var victory_message := "This turf is now ours!"
 ## How long the victory message stays up, in seconds.
 @export var message_time := 3.0
@@ -129,37 +127,23 @@ func _send_car(player: Citizen) -> void:
 	var grid := get_tree().get_first_node_in_group("city_grid") as CityGrid
 	if grid == null:
 		return
-	var best_drop := Vector3.INF
-	var best_along := Vector3.ZERO
-	var best_distance := INF
-	for street in grid.streets():
-		var along := Vector3.RIGHT if street.along_x else Vector3.BACK
-		var nearest := Vector3(player.global_position.x, 0.0, street.line) if street.along_x \
-			else Vector3(street.line, 0.0, player.global_position.z)
-		if not territory.contains(nearest):
-			continue
-		var distance := nearest.distance_to(player.global_position)
-		if distance < best_distance:
-			best_distance = distance
-			best_drop = nearest
-			best_along = along
-	if best_drop == Vector3.INF:
+	var route := grid.drop_off_route(player.global_position, OFFSCREEN_DISTANCE, CAR_STOP_SHORT, territory.contains)
+	if route.is_empty():
 		return
-	# Come in from whichever end of the street is farther away, so it's off-screen.
-	var line_point := best_drop - best_along * best_drop.dot(best_along)
-	var ends := [line_point - best_along * OFFSCREEN_DISTANCE, line_point + best_along * OFFSCREEN_DISTANCE]
-	var from: Vector3 = ends[0] if ends[0].distance_to(player.global_position) > ends[1].distance_to(player.global_position) else ends[1]
-	var exit: Vector3 = ends[1] if from == ends[0] else ends[0]
-	var heading := (exit - from).normalized()
-	var lane := Vector3(-heading.z, 0.0, heading.x) * LANE_OFFSET
 	var car: Car = CAR.instantiate()
-	car.drive(from + lane, best_drop - heading * CAR_STOP_SHORT + lane, exit + lane, territory)
+	car.drive(route.from, route.drop, route.exit, territory.color(), territory.deliver_member)
 	get_tree().current_scene.add_child(car)
 
 
 func _win() -> void:
 	active = false
 	territory.at_war = false
+	# Whoever's left of the gang that held it runs for it.
+	var losers := territory.owner_faction()
+	for member in get_tree().get_nodes_in_group(losers):
+		if member is GangMember and not member.is_down \
+				and (member.home == territory or territory.contains(member.global_position)):
+			member.rout()
 	WorldState.set_territory_owner(territory.id, Factions.PLAYER)
 	for door in get_tree().get_nodes_in_group("spawn_doors"):
 		if door.territory == territory:

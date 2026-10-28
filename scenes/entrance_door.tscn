@@ -27,7 +27,7 @@ size = Vector3(0.07, 0.07, 0.06)
 [sub_resource type="BoxShape3D" id="trigger_shape"]
 size = Vector3(1.0, 2, 0.6)
 
-[node name="EntranceDoor" type="Node3D"]
+[node name="EntranceDoor" type="Node3D" groups=["entrance_doors"]]
 physics_interpolation_mode = 2
 script = ExtResource("1_script")
 

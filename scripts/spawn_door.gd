@@ -94,7 +94,11 @@ func _physics_process(delta: float) -> void:
 	if target == null or _busy:
 		return
 
-	_alive = _alive.filter(func(enemy: Citizen) -> bool: return is_instance_valid(enemy) and not enemy.is_dead)
+	# A loop, not filter(): freed members (despawned far from the player) can't
+	# be passed to a typed lambda.
+	for i in range(_alive.size() - 1, -1, -1):
+		if not is_instance_valid(_alive[i]) or _alive[i].is_dead:
+			_alive.remove_at(i)
 	_spawn_timer -= delta
 	if _spawn_timer > 0.0 or _alive.size() >= max_alive or _doorway_blocked():
 		return

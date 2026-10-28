@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Weapon" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://art/tec9.png" id="2_texture"]
+
+[resource]
+script = ExtResource("1_script")
+display_name = "Tec-9"
+texture = ExtResource("2_texture")
+swing_style = 2
+visible_when_idle = true
+grip_pixels = 3
+damage = 6
+reach = 11.0
+arc_degrees = 0.0
+knockback = 1.2
+knockback_lift = 0.4
+swing_time = 0.05
+cooldown = 0.08
+move_speed_factor = 0.95
+max_ammo = 150
+projectile_speed = 30.0
+spread_degrees = 11.0
+automatic = true

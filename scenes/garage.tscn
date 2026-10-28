@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/garage.gd" id="1_script"]
+
+[node name="Garage" type="Node3D" groups=["garages"]]
+script = ExtResource("1_script")

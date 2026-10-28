@@ -24,6 +24,7 @@ script = ExtResource("1_script")
 faction = &"player"
 can_carry_weapons = true
 respawns_after_death = true
+max_health = 200
 drops_weapon_on_death = false
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]

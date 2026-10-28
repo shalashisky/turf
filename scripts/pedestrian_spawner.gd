@@ -18,8 +18,9 @@ extends Node3D
 ## How many spawn together. Followers get the first one as their `leader`,
 ## for scenes that have one (like Agent).
 @export var group_size := 1
-## New ones only appear at least this far from the player.
-@export var min_spawn_distance := 18.0
+## New ones appear this far from the player: out of sight, but close enough
+## to be in the part of the city that's loaded.
+@export var spawn_distance := Vector2(18.0, 34.0)
 ## How often to check whether more are needed, in seconds.
 @export var check_interval := 3.0
 
@@ -59,9 +60,12 @@ func _spawn() -> void:
 	if _sidewalks.is_empty():
 		return
 	var player := get_tree().get_first_node_in_group("player") as Node3D
-	for attempt in 12:
+	if player == null:
+		return
+	for attempt in 40:
 		var spot: Vector3 = _sidewalks.pick_random()
-		if player and spot.distance_to(player.global_position) < min_spawn_distance:
+		var away := spot.distance_to(player.global_position)
+		if away < spawn_distance.x or away > spawn_distance.y:
 			continue
 		var first: Citizen = null
 		for i in group_size:

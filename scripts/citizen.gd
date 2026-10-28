@@ -21,6 +21,25 @@ const MUZZLE_FLASH := preload("res://scenes/effects/muzzle_flash.tscn")
 const CONTACT_COOLDOWN := 0.6
 ## Damage from being hit by a car, per m/s it was going.
 const VEHICLE_DAMAGE_PER_SPEED := 3.0
+## Thrown out of a car: how hard, and how long they lie there.
+const THROWN_SPEED := 6.0
+const THROWN_LIFT := 3.0
+const THROWN_DOWN_TIME := 0.9
+## On fire: how long they keep burning after leaving the flames, and how
+## much it hurts, every BURN_TICK seconds.
+const BURN_TIME := 3.0
+const BURN_TICK := 0.5
+const BURN_DAMAGE := 6
+## Rain puts out burning people up to this many times faster.
+const BURN_RAIN_QUENCH := 6.0
+## Running around on fire: a new direction every so often, up to this far
+## round from the last, in radians.
+const PANIC_TURN_TIME := Vector2(0.2, 0.5)
+const PANIC_SWERVE := 2.4
+## Melee swings reach a car this far from its middle.
+const CAR_HALF_WIDTH := 1.3
+## Beating on a car does this share of the weapon's damage.
+const CAR_MELEE_FACTOR := 0.6
 const DUST_PUFF := preload("res://scenes/effects/dust_puff.tscn")
 ## Landing faster than this (m/s) kicks up dust.
 const DUST_FALL_SPEED := 3.0
@@ -162,7 +181,17 @@ var _death_side := 1.0
 var _death_tween: Tween
 ## Saved on death so a respawn can restore them.
 var _living_groups: Array[StringName] = []
+## The car they're driving, if any.
+var vehicle: Vehicle
+## Seconds left on fire. See set_on_fire().
+var burning_left := 0.0
+var _burned_by: Citizen
+var _burn_tick_left := 0.0
+var _flames: GPUParticles3D
+var _panic_dir := Vector3.ZERO
+var _panic_turn_left := 0.0
 var _living_collision_layer := 0
+var _layer_before_driving := 0
 var _living_collision_mask := 0
 
 @onready var _sprite: DirectionalSprite = $Sprite
@@ -183,7 +212,9 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	var move_dir := Vector3.ZERO if is_down else _choose_move_direction(delta)
+	var move_dir := Vector3.ZERO
+	if not is_down:
+		move_dir = _run_around_burning(delta) if _panics_while_burning() else _choose_move_direction(delta)
 	_update_swimming()
 	_update_walk_velocity(move_dir, delta)
 	_update_vertical_velocity(delta)
@@ -201,6 +232,7 @@ func _physics_process(delta: float) -> void:
 	_push_bodies()
 	_push_velocity = _push_velocity.move_toward(Vector3.ZERO, push_friction * delta)
 	_respawn_if_fallen()
+	_update_burning(delta)
 	if not is_down:
 		_choose_facing(move_dir, delta)
 	_update_visuals(delta)
@@ -311,6 +343,9 @@ func attack() -> bool:
 	if weapon.swing_style == Weapon.SwingStyle.SHOOT:
 		_shoot(weapon)
 		return true
+	if weapon.swing_style == Weapon.SwingStyle.THROW:
+		_throw(weapon)
+		return true
 	var half_arc := deg_to_rad(weapon.arc_degrees) * 0.5
 	for other: Citizen in get_tree().get_nodes_in_group("citizens"):
 		if other == self or _is_ally(other):
@@ -318,6 +353,11 @@ func attack() -> bool:
 		var to_other := _flat_offset_to(other)
 		if to_other.length() <= weapon.reach and facing.angle_to(to_other) <= half_arc:
 			other.hit(self, weapon)
+	# Cars are big: in reach if their side is.
+	for car: Vehicle in get_tree().get_nodes_in_group("vehicles"):
+		var to_car := _flat_offset_to(car)
+		if to_car.length() - CAR_HALF_WIDTH <= weapon.reach and facing.angle_to(to_car) <= half_arc + 0.4:
+			car.damage(weapon.damage * CAR_MELEE_FACTOR, self)
 	return true
 
 
@@ -344,6 +384,124 @@ func _shoot(weapon: Weapon) -> void:
 		drop_weapon()
 
 
+## Lobs one of the weapon's thrown_scene, like a Molotov, _throw_distance()
+## ahead. When the last one's gone, it's back to fists.
+func _throw(weapon: Weapon) -> void:
+	ammo -= 1
+	var hand := global_position + Vector3.UP * (HAND_HEIGHT + 0.4) + facing * 0.4
+	var landing := global_position + facing * _throw_distance(weapon)
+	var thrown: Node3D = weapon.thrown_scene.instantiate()
+	thrown.thrower = self
+	var parent := get_parent() as Node3D
+	thrown.launch(parent.to_local(hand) if parent else hand, parent.to_local(landing) if parent else landing)
+	get_parent().add_child(thrown)
+	thrown.reset_physics_interpolation()
+	_squash(Vector2(0.9, 1.1))
+	if ammo <= 0:
+		equipped_weapon = null
+
+
+## How far ahead to throw. Subclasses aim: at the cursor, at a target.
+func _throw_distance(weapon: Weapon) -> float:
+	return weapon.reach
+
+
+## Catches fire, or keeps burning: burns for BURN_TIME after the last time
+## this is called, taking damage, as an attack by `by` if anyone. Rain and
+## water put it out.
+func set_on_fire(by: Citizen = null) -> void:
+	if is_down or vehicle:
+		return
+	var catching := burning_left <= 0.0
+	burning_left = BURN_TIME
+	if by:
+		_burned_by = by
+	if not catching:
+		return
+	_burn_tick_left = 0.0
+	if _flames == null:
+		_flames = Fire.make_flames(Vector3(0.18, 0.4, 0.18), 30)
+		_flames.position.y = 0.6
+		add_child(_flames)
+	_flames.emitting = true
+	_react_to_hit(by)
+	if by:
+		get_tree().call_group("npcs", "notice_fight", by, self)
+
+
+func _update_burning(delta: float) -> void:
+	if burning_left <= 0.0:
+		return
+	burning_left -= delta * (1.0 + Fire.rain_on(self) * BURN_RAIN_QUENCH)
+	if is_down or is_swimming or vehicle:
+		burning_left = 0.0
+	if burning_left <= 0.0:
+		_flames.emitting = false
+		return
+	_burn_tick_left -= delta
+	if _burn_tick_left <= 0.0:
+		_burn_tick_left = BURN_TICK
+		_burn(BURN_DAMAGE)
+
+
+## On fire and running around like crazy, instead of whatever they were doing.
+## Not the player: they're in charge of their own panic.
+func _panics_while_burning() -> bool:
+	return burning_left > 0.0 and not is_in_group("player")
+
+
+## Flat out, swerving wildly every fraction of a second.
+func _run_around_burning(delta: float) -> Vector3:
+	_panic_turn_left -= delta
+	if _panic_turn_left <= 0.0 or _panic_dir == Vector3.ZERO or is_on_wall():
+		_panic_turn_left = randf_range(PANIC_TURN_TIME.x, PANIC_TURN_TIME.y)
+		var from := _panic_dir if _panic_dir != Vector3.ZERO else facing
+		_panic_dir = from.rotated(Vector3.UP, randf_range(-PANIC_SWERVE, PANIC_SWERVE)).normalized()
+	return _keep_out_of_drops(_panic_dir)
+
+
+## Hook to keep `direction` from running off a ledge or into the water.
+func _keep_out_of_drops(direction: Vector3) -> Vector3:
+	return direction
+
+
+## Fades out of existence where they stand, and is gone. Nobody can touch
+## them while they fade.
+func fade_away(time := 1.0) -> void:
+	_health_label.hide()
+	_weapon_pivot.hide()
+	for group in ["citizens", "npcs"]:
+		remove_from_group(group)
+	collision_layer = 0
+	if _flash:
+		_flash.kill()
+	# Blended transparency for the fade. Alpha cut would make it pop out instead.
+	_sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
+	var tween := create_tween()
+	tween.tween_property(_sprite, "modulate:a", 0.0, time)
+	if _blob_shadow:
+		tween.parallel().tween_property(_blob_shadow, "modulate:a", 0.0, time)
+	tween.tween_callback(queue_free)
+
+
+## Fire damage: no knockback and no blood, just a scorched flash.
+func _burn(amount: int) -> void:
+	if _flash:
+		_flash.kill()
+	_sprite.modulate = Color(1.0, 0.55, 0.2)
+	_flash = create_tween()
+	_flash.tween_property(_sprite, "modulate", Color.WHITE, 0.3)
+	health = maxi(health - amount, 0)
+	if health == 0:
+		var blamed := _burned_by if is_instance_valid(_burned_by) else null
+		if essential:
+			knock_out()
+		else:
+			die()
+		if blamed:
+			get_tree().call_group("npcs", "notice_fight", blamed, self)
+
+
 ## Allies are never hit by our attacks: by default, anyone in a friendly faction.
 func _is_ally(other: Citizen) -> bool:
 	return Factions.stance(faction, other.faction) == Factions.Stance.FRIENDLY
@@ -368,12 +526,71 @@ func contact_hit(attacker: Citizen, weapon: Weapon) -> void:
 	_take_hit(attacker, weapon.contact_damage, weapon.contact_knockback, 0.0)
 
 
+## Gets into `car`, behind the wheel: out of sight and out of reach (no
+## collisions, not a citizen anyone can hit) until exit_vehicle(). The car
+## moves them along with it, so cameras and streaming follow.
+func enter_vehicle(car: Vehicle) -> void:
+	vehicle = car
+	set_blocking(false)
+	visible = false
+	_layer_before_driving = collision_layer
+	collision_layer = 0
+	collision_mask = 0
+	remove_from_group("citizens")
+	set_physics_process(false)
+
+
+## Steps out of the car at `at`.
+func exit_vehicle(at: Vector3) -> void:
+	vehicle = null
+	global_position = at
+	velocity = Vector3.ZERO
+	reset_physics_interpolation()
+	visible = true
+	collision_layer = _layer_before_driving
+	collision_mask = 3
+	add_to_group("citizens")
+	set_physics_process(true)
+
+
+## Thrown out of a car toward `direction`: lands sprawled on the ground and
+## lies there a moment, then gets back up, hurt in nothing but their pride.
+func thrown_from_car(direction: Vector3) -> void:
+	if is_down:
+		return
+	var kept_health := health
+	is_knocked_out = true
+	_fall_down(direction)
+	push(direction * THROWN_SPEED)
+	velocity.y = THROWN_LIFT
+	_knocked_airborne = true
+	_death_tween.tween_interval(THROWN_DOWN_TIME)
+	_death_tween.tween_property(self, "_death_tilt", 0.0, 0.35) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN_OUT)
+	_death_tween.tween_callback(func() -> void:
+		is_knocked_out = false
+		health = kept_health
+		_stand_back_up()
+		_squash(Vector2(0.85, 1.15)))
+
+
+## Caught in a blast at `center`: thrown away from it. Counts as an attack
+## by `attacker`, whoever blew it up, if anyone.
+func caught_in_explosion(center: Vector3, attacker: Citizen, amount: int) -> void:
+	var away := global_position - center
+	away.y = 0.0
+	if away.length() < 0.05:
+		away = Vector3.FORWARD.rotated(Vector3.UP, randf() * TAU)
+	_take_hit(attacker if attacker != self else null, amount, 9.0, 6.0, away.normalized())
+
+
 ## Hit by a car going at `car_velocity`: thrown along with it, and hurt
-## more the faster it was going.
-func struck_by_vehicle(car_velocity: Vector3) -> void:
+## more the faster it was going. It counts as an attack by the `driver`, if
+## there was one.
+func struck_by_vehicle(car_velocity: Vector3, driver: Citizen = null) -> void:
 	var flat := Vector3(car_velocity.x, 0.0, car_velocity.z)
 	var speed := flat.length()
-	_take_hit(null, roundi(speed * VEHICLE_DAMAGE_PER_SPEED), speed * 0.9, 4.0, flat.normalized())
+	_take_hit(driver, roundi(speed * VEHICLE_DAMAGE_PER_SPEED), speed * 0.9, 4.0, flat.normalized())
 
 
 ## How this citizen reacts to being hit: fight back, run, hold a grudge. Called
@@ -388,7 +605,7 @@ func _take_hit(attacker: Citizen, damage: int, knockback: float, lift: float, di
 	if is_down:
 		return
 	var away := direction
-	if attacker:
+	if attacker and direction == Vector3.ZERO:
 		away = _flat_offset_from(attacker)
 		away = away.normalized() if away.length() > 0.01 else attacker.facing
 	var blocked := is_blocking and facing.angle_to(-away) <= deg_to_rad(block_arc_degrees) * 0.5
@@ -475,7 +692,8 @@ func _fall_down(fall_direction: Vector3) -> void:
 	# Nobody can target, hit, or bump into the body. It still rests on the ground.
 	_living_groups.clear()
 	for group in get_groups():
-		if not String(group).begins_with("_"):
+		# Still the player, though: the camera, HUD and minimap follow them.
+		if not String(group).begins_with("_") and group != &"player":
 			_living_groups.append(group)
 			remove_from_group(group)
 	_living_collision_layer = collision_layer
@@ -806,6 +1024,10 @@ func _update_weapon_sprite(delta: float) -> void:
 			# Held out front, kicking back a little with each shot.
 			_weapon_angle = 0.0
 			thrust = 0.1 - sin(progress * PI) * 0.15
+		Weapon.SwingStyle.THROW:
+			# Held up high, then brought over and forward in the throw.
+			_weapon_angle = lerpf(1.2, -0.4, progress) if swinging else 1.2
+			thrust = sin(progress * PI) * 0.3
 	if is_blocking and not swinging:
 		# Guard up: held across the body, pointing up on screen.
 		_weapon_angle = lerp_angle(_weapon_angle, PI * 0.5, 1.0 - exp(-25.0 * delta))

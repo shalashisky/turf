@@ -16,6 +16,11 @@ func is_hostile_to(other: Citizen) -> bool:
 	return super(other)
 
 
+## A wanted player's not getting away in a car.
+func _pulls_out_of_cars(who: Citizen) -> bool:
+	return who.is_in_group("player") and Factions.is_player_wanted()
+
+
 func notice_fight(attacker: Citizen, victim: Citizen) -> void:
 	if is_down or self in [attacker, victim]:
 		return

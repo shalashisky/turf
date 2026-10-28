@@ -7,6 +7,7 @@ enum SwingStyle {
 	ARC,  ## Sweeps through arc_degrees, like a bat.
 	JAB,  ## Thrusts straight out and back, like a punch.
 	SHOOT,  ## Fires a projectile, like a pistol. Uses ammo.
+	THROW,  ## Lobs thrown_scene in an arc, like a Molotov. Each one's a round of ammo.
 }
 
 @export var display_name := "Fists"
@@ -48,3 +49,10 @@ enum SwingStyle {
 @export var projectile_speed := 32.0
 ## Random spread either side of where it's aimed, in degrees.
 @export var spread_degrees := 3.0
+## Keeps firing while the attack button is held, and NPCs fire it in bursts.
+@export var automatic := false
+
+@export_group("Throwing")
+## What a THROW weapon lobs: a scene whose root has a `thrower` and a
+## launch(from, to) method, like ThrownMolotov. Thrown up to `reach` away.
+@export var thrown_scene: PackedScene

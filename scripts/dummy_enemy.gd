@@ -45,6 +45,16 @@ var _raid_point := Vector3.ZERO
 var _raid_left := 0.0
 
 
+## Routed: how long they run before fading away, and how long the fade takes.
+const ROUT_TIME := Vector2(3.0, 5.0)
+const ROUT_FADE_TIME := 1.0
+
+## Their turf's been lost, and they're running for it (rout()).
+var routed := false
+var _rout_left := 0.0
+var _fading := false
+
+
 func _ready() -> void:
 	super()
 	_state_time_left = randf_range(idle_time_range.x, idle_time_range.y)
@@ -52,7 +62,8 @@ func _ready() -> void:
 
 
 func _react_to_hit(attacker: Citizen) -> void:
-	if attacker == null or _is_ally(attacker):
+	# On the run, they just keep running.
+	if attacker == null or _is_ally(attacker) or routed:
 		return
 	# Always turn on whoever hit us. The rest of the gang joins in through
 	# notice_fight, if they're free.
@@ -63,10 +74,17 @@ func _react_to_hit(attacker: Citizen) -> void:
 		get_tree().call_group("turf_wars", "start", faction)
 
 
+## In a turf war, the player gets dragged out of any car they're hiding in.
+func _pulls_out_of_cars(who: Citizen) -> bool:
+	return who.is_in_group("player") and home != null and home.at_war and not routed
+
+
 ## Rival gangs and the police get jumped on sight. The player only does once
 ## there's a turf war on over this gang's turf; until then, the player has to
 ## start it.
 func _attacks_on_sight(other: Citizen) -> bool:
+	if routed:
+		return false
 	if other.is_in_group("player"):
 		return home != null and home.at_war
 	return super(other)
@@ -90,6 +108,15 @@ func _on_died() -> void:
 		get_parent().add_child.call_deferred(cash)
 
 
+func _run_off(delta: float) -> Vector3:
+	_rout_left -= delta
+	if _rout_left <= 0.0 and not _fading:
+		_fading = true
+		fade_away(ROUT_FADE_TIME)
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	return _direction_away_from(player.global_position) if player else Vector3.ZERO
+
+
 ## Walk straight along `direction` for `duration` seconds before the AI takes over.
 func walk_out(direction: Vector3, duration: float) -> void:
 	_walk_out_dir = direction.normalized()
@@ -108,7 +135,25 @@ func wants_weapon(_weapon: Weapon) -> bool:
 	return equipped_weapon == null and (target != null or grab_weapons_while_calm)
 
 
+## The turf war's lost: they drop the fight, run from the player, and after
+## a few seconds fade away for good.
+func rout() -> void:
+	if routed or is_down:
+		return
+	routed = true
+	stop_fighting()
+	_raid_left = 0.0
+	_rout_left = randf_range(ROUT_TIME.x, ROUT_TIME.y)
+
+
+func notice_fight(attacker: Citizen, victim: Citizen) -> void:
+	if not routed:
+		super(attacker, victim)
+
+
 func _choose_move_direction(delta: float) -> Vector3:
+	if routed:
+		return _run_off(delta)
 	if _walk_out_left > 0.0:
 		_walk_out_left -= delta
 		return _walk_out_dir * minf(wander_speed / move_speed, 1.0)

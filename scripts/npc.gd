@@ -22,6 +22,17 @@ const HOSTILE_SCAN_INTERVAL := 0.5
 ## Attacks citizens of hostile factions it can see within this range. 0 for never.
 @export var aggro_range := 0.0
 
+## Off to take a car that's got this far away, they give up on it.
+const GIVE_UP_ON_CAR_DISTANCE := 14.0
+## They won't throw a Molotov any closer than this.
+const MIN_THROW_DISTANCE := 3.5
+## Within this of a car's middle, they can get at it.
+const CAR_REACH := 2.4
+## A car going slower than this, they can drag the driver out of.
+const PULL_OUT_SPEED := 3.0
+## How many more shots follow the first in a burst from an automatic.
+const BURST_SHOTS := Vector2i(4, 9)
+
 @export_group("Fighting")
 ## Pause before each swing, stretched up tall, so the target sees it coming.
 @export var attack_windup := 0.35
@@ -40,6 +51,10 @@ var target: Citizen
 ## Counts down during a windup. Negative when not winding up.
 var _windup_left := -1.0
 var _next_attack_wait := 0.0
+## A car this one is on the way to take, if any (go_take()).
+var car_to_take: Vehicle
+## Shots left in a burst from an automatic.
+var _burst_left := 0
 var _block_left := 0.0
 var _hostile_scan_left := 0.0
 
@@ -91,16 +106,27 @@ func _scan_for_hostiles(delta: float) -> bool:
 	_hostile_scan_left = HOSTILE_SCAN_INTERVAL
 	var best: Citizen = null
 	var best_distance := aggro_range
-	for other: Citizen in get_tree().get_nodes_in_group("citizens"):
+	var candidates := get_tree().get_nodes_in_group("citizens")
+	# Someone driving is out of sight in their car, but not out of mind.
+	var player := get_tree().get_first_node_in_group("player") as Citizen
+	if player and player.vehicle:
+		candidates.append(player)
+	for other: Citizen in candidates:
 		if other == self or other.is_down or not _attacks_on_sight(other):
 			continue
 		var distance := global_position.distance_to(other.global_position)
-		if distance < best_distance and _can_see(other.global_position):
+		# Someone in a car can't be seen through it, but the car can.
+		if distance < best_distance and (other.vehicle or _can_see(other.global_position)):
 			best = other
 			best_distance = distance
 	if best:
 		start_fighting(best)
 	return best != null
+
+
+## Whether to drag `who` out of the car they're driving, when fighting them.
+func _pulls_out_of_cars(_who: Citizen) -> bool:
+	return false
 
 
 ## Whether to pick a fight with `other` just for being there. By default,
@@ -111,16 +137,32 @@ func _attacks_on_sight(other: Citizen) -> bool:
 
 ## Chase the target, then wind up and swing once in reach.
 func _fight(delta: float) -> Vector3:
+	# Their target's in a car: drag them out of it, if they're the sort to.
+	var car := target.vehicle
+	if car and _pulls_out_of_cars(target):
+		if global_position.distance_to(car.global_position) < CAR_REACH and absf(car.speed) < PULL_OUT_SPEED:
+			car.pull_out(self)
+			return Vector3.ZERO
+		if not can_shoot():
+			return _steer_toward(car.global_position)
 	var to_target := _flat_offset_to(target)
 	var distance := to_target.length()
 	if distance > 0.01:
 		facing = to_target / distance
 	_next_attack_wait -= delta
 
+	# Automatics keep firing to the end of the burst once it's started.
+	if _burst_left > 0:
+		if can_attack():
+			_burst_left = _burst_left - 1 if attack() and can_shoot() else 0
+		return Vector3.ZERO
+
 	if _windup_left >= 0.0:
 		_windup_left -= delta
 		if _windup_left < 0.0:
 			attack()
+			if current_weapon().automatic:
+				_burst_left = randi_range(BURST_SHOTS.x, BURST_SHOTS.y)
 			_next_attack_wait = current_weapon().cooldown + randf_range(attack_delay_range.x, attack_delay_range.y)
 			# Sometimes cover up afterwards instead of standing there open.
 			if randf() < block_chance:
@@ -141,6 +183,39 @@ func _fight(delta: float) -> Vector3:
 		return Vector3.ZERO
 
 	return _steer_toward(target.global_position)
+
+
+func _keep_out_of_drops(direction: Vector3) -> Vector3:
+	return direction if is_swimming else _clip_at_ledges(direction, max_safe_drop)
+
+
+## Throws land on their target, but never so close they'd burn themselves.
+func _throw_distance(weapon: Weapon) -> float:
+	if target == null:
+		return weapon.reach
+	return clampf(_flat_offset_to(target).length(), MIN_THROW_DISTANCE, weapon.reach)
+
+
+## Heads for `car`'s door to take it (Vehicle.hijack()). Subclasses that
+## steal cars check car_to_take in their _choose_move_direction() and follow
+## _approach_car_to_take().
+func go_take(car: Vehicle) -> void:
+	car_to_take = car
+
+
+func _approach_car_to_take() -> Vector3:
+	var car := car_to_take
+	# Gone, wrecked, the player's in it, or it's driven off out of reach.
+	if not is_instance_valid(car) or car.is_wrecked or (car.driver and car.driver.is_in_group("player")) \
+			or global_position.distance_to(car.global_position) > GIVE_UP_ON_CAR_DISTANCE:
+		car_to_take = null
+		return Vector3.ZERO
+	# Up against it from any side is close enough, like it is for the player.
+	if global_position.distance_to(car.global_position) < CAR_REACH:
+		car_to_take = null
+		car.hijack(self)
+		return Vector3.ZERO
+	return _steer_toward(car.global_position)
 
 
 ## Direction to walk to reach `point`: hops up onto things in the way,

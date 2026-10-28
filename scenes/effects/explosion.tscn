@@ -1,0 +1,116 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/explosion.gd" id="1_script"]
+
+[sub_resource type="Curve" id="shrink"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="shrink_texture"]
+curve = SubResource("shrink")
+
+[sub_resource type="Gradient" id="fire_colors"]
+offsets = PackedFloat32Array(0, 0.35, 1)
+colors = PackedColorArray(1, 0.95, 0.6, 1, 1, 0.45, 0.08, 1, 0.35, 0.08, 0.02, 0)
+
+[sub_resource type="GradientTexture1D" id="fire_texture"]
+gradient = SubResource("fire_colors")
+
+[sub_resource type="ParticleProcessMaterial" id="fire"]
+emission_shape = 1
+emission_sphere_radius = 0.7
+direction = Vector3(0, 1, 0)
+spread = 75.0
+initial_velocity_min = 3.0
+initial_velocity_max = 9.0
+gravity = Vector3(0, -2, 0)
+damping_min = 4.0
+damping_max = 7.0
+scale_min = 0.7
+scale_max = 1.6
+scale_curve = SubResource("shrink_texture")
+color_ramp = SubResource("fire_texture")
+
+[sub_resource type="Curve" id="grow"]
+_data = [Vector2(0, 0.6), 0.0, 0.0, 0, 0, Vector2(1, 2), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="grow_texture"]
+curve = SubResource("grow")
+
+[sub_resource type="Gradient" id="smoke_colors"]
+colors = PackedColorArray(0.12, 0.11, 0.1, 0.9, 0.25, 0.24, 0.24, 0)
+
+[sub_resource type="GradientTexture1D" id="smoke_texture"]
+gradient = SubResource("smoke_colors")
+
+[sub_resource type="ParticleProcessMaterial" id="smoke"]
+emission_shape = 1
+emission_sphere_radius = 1.0
+direction = Vector3(0, 1, 0)
+spread = 50.0
+initial_velocity_min = 1.5
+initial_velocity_max = 4.0
+gravity = Vector3(0, 1.2, 0)
+damping_min = 1.5
+damping_max = 2.5
+scale_curve = SubResource("grow_texture")
+color_ramp = SubResource("smoke_texture")
+
+[sub_resource type="StandardMaterial3D" id="square_mat"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 3
+billboard_keep_scale = true
+
+[sub_resource type="QuadMesh" id="fire_square"]
+material = SubResource("square_mat")
+size = Vector2(0.42, 0.42)
+
+[sub_resource type="QuadMesh" id="smoke_square"]
+material = SubResource("square_mat")
+size = Vector2(0.45, 0.45)
+
+[sub_resource type="StandardMaterial3D" id="fireball_mat"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.62, 0.18, 1)
+
+[sub_resource type="SphereMesh" id="fireball_mesh"]
+material = SubResource("fireball_mat")
+radial_segments = 12
+rings = 6
+
+[node name="Explosion" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="Fire" type="GPUParticles3D" parent="."]
+layers = 2
+emitting = false
+amount = 90
+lifetime = 0.8
+one_shot = true
+explosiveness = 0.95
+process_material = SubResource("fire")
+draw_pass_1 = SubResource("fire_square")
+
+[node name="Smoke" type="GPUParticles3D" parent="."]
+layers = 2
+emitting = false
+amount = 30
+lifetime = 2.2
+one_shot = true
+explosiveness = 0.8
+process_material = SubResource("smoke")
+draw_pass_1 = SubResource("smoke_square")
+
+[node name="Fireball" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+mesh = SubResource("fireball_mesh")
+
+[node name="Flash" type="OmniLight3D" parent="."]
+position = Vector3(0, 1, 0)
+light_color = Color(1, 0.6, 0.25, 1)
+light_energy = 0.0
+omni_range = 12.0

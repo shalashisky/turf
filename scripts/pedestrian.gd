@@ -5,6 +5,10 @@ extends Npc
 ## nearby, or from the player while a turf war is on. Once it's calm, they
 ## make their way back to the nearest sidewalk. They're nobody's neighbor, so
 ## safe doors won't take them in.
+##
+## Some will take a car: a stopped one nearby to get away when they're
+## running, and now and then one left unattended as they walk past. (Not
+## from under the player's nose, nor from the player's garage.)
 
 const DIRECTIONS: Array[Vector3] = [Vector3.FORWARD, Vector3.BACK, Vector3.LEFT, Vector3.RIGHT]
 ## How far around to look for a sidewalk to get back to, in tiles.
@@ -14,6 +18,13 @@ const SIDEWALK_SEARCH_RADIUS := 8
 const LANE_OFFSET := 0.26
 ## Stuck this long against someone or something, they turn around.
 const STUCK_TIME := 0.8
+## How far around them they'll look for a car to get away in.
+const GETAWAY_SEARCH_RADIUS := 8.0
+## Would-be car thieves look this far around them, this often.
+const THIEF_SEARCH_RADIUS := 6.0
+const THIEF_CHECK_INTERVAL := 1.5
+## Nobody steals a car with the player this close to it.
+const THIEF_PLAYER_DISTANCE := 12.0
 
 ## Strolling speed. move_speed is how fast they run.
 @export var walk_speed := 1.4
@@ -25,6 +36,10 @@ const STUCK_TIME := 0.8
 @export_range(0.0, 1.0) var cross_chance := 0.35
 ## Chance of stopping for a moment whenever they turn.
 @export_range(0.0, 1.0) var pause_chance := 0.2
+## Chance of taking a stopped car nearby to get away in, when they start running.
+@export_range(0.0, 1.0) var getaway_chance := 0.35
+## Chance of stealing each unattended car they walk past.
+@export_range(0.0, 1.0) var car_thief_chance := 0.08
 
 var _grid: CityGrid
 var _dir := Vector3.ZERO
@@ -35,6 +50,9 @@ var _flee_left := 0.0
 ## A sidewalk tile to head back to after running off it.
 var _way_back := Vector3.INF
 var _stuck_time := 0.0
+## Unattended cars they've already walked past, and decided about.
+var _cars_passed := {}
+var _thief_check_left := 0.0
 
 
 func _ready() -> void:
@@ -57,6 +75,10 @@ func _react_to_hit(attacker: Citizen) -> void:
 
 
 func _flee(from: Vector3) -> void:
+	if _flee_left <= 0.0 and car_to_take == null and randf() < getaway_chance:
+		var getaway := _stopped_car_near(GETAWAY_SEARCH_RADIUS)
+		if getaway:
+			go_take(getaway)
 	_flee_from = from
 	_flee_left = flee_time
 	_crossing = false
@@ -64,11 +86,53 @@ func _flee(from: Vector3) -> void:
 
 
 func _choose_move_direction(delta: float) -> Vector3:
+	if car_to_take:
+		return _approach_car_to_take()
 	_keep_away_from_turf_wars()
 	if _flee_left > 0.0:
 		_flee_left -= delta
 		return _direction_away_from(_flee_from)
+	_look_for_a_car_to_steal(delta)
 	return _stroll(delta) * minf(walk_speed / move_speed, 1.0)
+
+
+func _look_for_a_car_to_steal(delta: float) -> void:
+	_thief_check_left -= delta
+	if _thief_check_left > 0.0 or car_thief_chance <= 0.0:
+		return
+	_thief_check_left = THIEF_CHECK_INTERVAL
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	for car: Vehicle in get_tree().get_nodes_in_group("vehicles"):
+		if _cars_passed.has(car) or not car.is_unattended() or absf(car.speed) > 0.5 \
+				or global_position.distance_to(car.global_position) > THIEF_SEARCH_RADIUS:
+			continue
+		if player and car.global_position.distance_to(player.global_position) < THIEF_PLAYER_DISTANCE:
+			continue
+		var garaged := false
+		for garage: Garage in get_tree().get_nodes_in_group("garages"):
+			garaged = garaged or garage.holds(car)
+		if garaged:
+			continue
+		# Each car they could steal, they make their mind up about once.
+		_cars_passed[car] = true
+		if randf() < car_thief_chance:
+			go_take(car)
+			return
+
+
+## The nearest car within `radius` that's stopped or nearly, and not the
+## player's to drive right now.
+func _stopped_car_near(radius: float) -> Vehicle:
+	var best: Vehicle = null
+	var best_distance := radius
+	for car: Vehicle in get_tree().get_nodes_in_group("vehicles"):
+		if car.is_wrecked or absf(car.speed) > 1.5 or (car.driver and car.driver.is_in_group("player")):
+			continue
+		var distance := global_position.distance_to(car.global_position)
+		if distance < best_distance:
+			best = car
+			best_distance = distance
+	return best
 
 
 func _keep_away_from_turf_wars() -> void:

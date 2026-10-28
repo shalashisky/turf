@@ -14,6 +14,9 @@ clerk_8dir.png: same layout, a store clerk in a green apron.
 pedestrian_1_8dir.png .. pedestrian_3_8dir.png: same layout, passers-by in different outfits.
 cash.png: 14x8 dollar bill, for cash drops.
 pistol.png: 14x9 pistol pointing right, grip at the left.
+molotov.png: 14x7 bottle lying neck-right, with a burning rag in the neck.
+tec9.png: 20x11 machine pistol pointing right: long receiver, perforated
+  barrel shroud, and the magazine in front of the grip.
 cop_8dir.png: same layout as the player sheet, a beat cop in uniform and cap.
 nightstick.png: 20x6 police baton pointing right, handle at the left.
 shadow_blob.png: soft round shadow projected under the player.
@@ -300,6 +303,8 @@ def main():
         write_png(art / ("pedestrian_%d_8dir.png" % (i + 1)), draw_sheet(palette, arrow=False))
     write_png(art / "cash.png", draw_cash())
     write_png(art / "pistol.png", draw_pistol())
+    write_png(art / "tec9.png", draw_tec9())
+    write_png(art / "molotov.png", draw_molotov())
     write_png(art / "nightstick.png", draw_nightstick())
     write_png(art / "cop_8dir.png", draw_sheet(COP, arrow=False))
     write_png(art / "shadow_blob.png", draw_blob(32))
@@ -427,6 +432,43 @@ def draw_pistol():
     rect(image, 3, 2, 11, 2, light)
     rect(image, 2, 5, 5, 7, grip)  # grip
     rect(image, 6, 5, 7, 5, metal)  # trigger guard
+    add_outline(image)
+    return image
+
+
+def draw_molotov():
+    image = new_image(14, 7)
+    glass = (70, 110, 60, 255)
+    shine = (130, 170, 110, 255)
+    liquid = (190, 140, 50, 255)
+    rag = (220, 210, 185, 255)
+    rect(image, 1, 1, 7, 5, glass)  # body
+    rect(image, 2, 3, 7, 5, liquid)  # fuel inside
+    rect(image, 2, 1, 6, 1, shine)
+    rect(image, 8, 2, 9, 4, glass)  # neck
+    rect(image, 10, 2, 11, 4, rag)  # rag stuffed in the neck
+    image[1][12] = (255, 200, 60, 255)  # flame
+    image[2][12] = (255, 140, 30, 255)
+    image[3][12] = (255, 110, 20, 255)
+    image[2][13] = (255, 220, 120, 255)
+    add_outline(image)
+    return image
+
+
+def draw_tec9():
+    image = new_image(20, 11)
+    metal = (52, 54, 60, 255)
+    light = (98, 102, 112, 255)
+    dark = (30, 30, 34, 255)
+    rect(image, 2, 2, 13, 4, metal)  # receiver
+    rect(image, 3, 2, 12, 2, light)
+    rect(image, 14, 2, 18, 4, metal)  # barrel shroud
+    for x in (15, 17):
+        image[3][x] = dark  # cooling holes
+    rect(image, 2, 5, 4, 8, dark)  # grip
+    rect(image, 5, 5, 6, 6, metal)  # trigger guard
+    rect(image, 8, 5, 10, 9, metal)  # long magazine ahead of the grip
+    rect(image, 8, 5, 8, 9, light)
     add_outline(image)
     return image
 

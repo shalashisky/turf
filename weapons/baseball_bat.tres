@@ -1,13 +1,12 @@
-[gd_resource type="Resource" script_class="Weapon" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="Weapon" format=3 uid="uid://bpj1381g3vuwa"]
 
-[ext_resource type="Script" path="res://scripts/weapon.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://art/baseball_bat.png" id="2_texture"]
+[ext_resource type="Script" uid="uid://c2a1ccheccata" path="res://scripts/weapon.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://cv7qtccd6dvv6" path="res://art/baseball_bat.png" id="2_texture"]
 
 [resource]
 script = ExtResource("1_script")
 display_name = "Baseball Bat"
 texture = ExtResource("2_texture")
-grip_pixels = 2
 damage = 34
 reach = 2.2
 arc_degrees = 150.0

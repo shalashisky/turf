@@ -11,6 +11,8 @@ extends Node3D
 	{"label": "Knife", "price": 25, "weapon": preload("res://weapons/knife.tres")},
 	{"label": "Brass Knuckles", "price": 30, "weapon": preload("res://weapons/brass_knuckles.tres")},
 	{"label": "Pistol", "price": 75, "weapon": preload("res://weapons/pistol.tres")},
+	{"label": "Tec-9", "price": 140, "weapon": preload("res://weapons/tec9.tres")},
+	{"label": "Molotovs (x3)", "price": 45, "weapon": preload("res://weapons/molotov.tres")},
 	{"label": "Weed Seeds (x3)", "price": 12, "item": "weed_seed", "count": 3},
 ]
 

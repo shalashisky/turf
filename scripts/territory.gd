@@ -23,9 +23,12 @@ const RESTOCK_INTERVAL := 4.0
 	preload("res://weapons/brass_knuckles.tres"),
 	preload("res://weapons/knife.tres"),
 	preload("res://weapons/pistol.tres"),
+	preload("res://weapons/tec9.tres"),
+	preload("res://weapons/molotov.tres"),
 ]
-## New members only show up at least this far from the player.
-@export var min_spawn_distance := 16.0
+## New members show up this far from the player: out of sight, but close
+## enough to be in the part of the city that's loaded.
+@export var spawn_distance := Vector2(18.0, 34.0)
 ## Seconds between raids on rival turf.
 @export var raid_interval := Vector2(35.0, 70.0)
 @export var raid_size := Vector2i(2, 3)
@@ -45,7 +48,8 @@ func _ready() -> void:
 	_raid_left = randf_range(raid_interval.x, raid_interval.y)
 	var grid := get_tree().get_first_node_in_group("city_grid") as CityGrid
 	if grid:
-		_find_open_ground(grid)
+		# Off the roads, so they're not forever in front of traffic.
+		_spots = grid.open_ground_in(area, [CityGrid.SIDEWALK, 2, 3])
 	if _populated():
 		for i in population:
 			spawn_member()
@@ -73,25 +77,36 @@ func random_spot() -> Vector3:
 	return _spots.pick_random() if not _spots.is_empty() else center()
 
 
+## A random walkable spot inside the turf, between `distance.x` and
+## `distance.y` from `point`. INF if there isn't one.
+func random_spot_near(point: Vector3, distance: Vector2) -> Vector3:
+	for attempt in 40:
+		var spot := random_spot()
+		var away := spot.distance_to(point)
+		if away >= distance.x and away <= distance.y:
+			return spot
+	return Vector3.INF
+
+
 ## Sends out a new member of the gang that holds the turf, out of the player's sight.
 func spawn_member() -> GangMember:
 	var path: String = Factions.MEMBER_SCENES.get(owner_faction(), "")
 	if path.is_empty() or _spots.is_empty():
 		return null
 	var player := get_tree().get_first_node_in_group("player") as Node3D
-	for attempt in 12:
-		var spot := random_spot()
-		if player and spot.distance_to(player.global_position) < min_spawn_distance:
-			continue
-		var member: GangMember = load(path).instantiate()
-		if not weapon_pool.is_empty() and randf() < armed_chance:
-			member.starting_weapon = weapon_pool.pick_random()
-		member.home = self
-		member.position = to_local(spot)
-		add_child(member)
-		_members.append(member)
-		return member
-	return null
+	if player == null:
+		return null
+	var spot := random_spot_near(player.global_position, spawn_distance)
+	if spot == Vector3.INF:
+		return null
+	var member: GangMember = load(path).instantiate()
+	if not weapon_pool.is_empty() and randf() < armed_chance:
+		member.starting_weapon = weapon_pool.pick_random()
+	member.home = self
+	member.position = to_local(spot)
+	add_child(member)
+	_members.append(member)
+	return member
 
 
 ## Drops off a new member at `point`, like out of a car, already after `target`.
@@ -160,20 +175,15 @@ func _send_raid() -> void:
 			rivals.append(other)
 	if rivals.is_empty():
 		return
+	# Somewhere on their turf near the player, so the raid happens where it can be seen.
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	if player == null:
+		return
 	var target_turf: Territory = rivals.pick_random()
-	var spot := target_turf.random_spot()
+	var spot := target_turf.random_spot_near(player.global_position, Vector2(0.0, 30.0))
+	if spot == Vector3.INF:
+		return
 	var idle := _living_members().filter(func(m: GangMember) -> bool: return m.target == null)
 	idle.shuffle()
 	for member in idle.slice(0, randi_range(raid_size.x, raid_size.y)):
 		member.raid(spot + Vector3(randf_range(-1.5, 1.5), 0.0, randf_range(-1.5, 1.5)))
-
-
-## Every open ground tile in the turf: road, sidewalk, dirt and grass.
-func _find_open_ground(grid: CityGrid) -> void:
-	for cell in grid.get_used_cells():
-		if cell.y != 0 or grid.get_cell_item(cell) > 3 or grid.get_cell_item(cell + Vector3i.UP) != GridMap.INVALID_CELL_ITEM:
-			continue
-		var spot := grid.to_global(grid.map_to_local(cell))
-		spot.y = 0.0
-		if contains(spot):
-			_spots.append(spot)

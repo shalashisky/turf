@@ -39,6 +39,9 @@ func _physics_process(delta: float) -> void:
 		if target:
 			target.hit(shooter, weapon)
 		else:
+			var car := hit.collider as Vehicle
+			if car:
+				car.damage(weapon.damage, shooter)
 			_spark(hit.position, hit.normal)
 		queue_free()
 		return

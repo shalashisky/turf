@@ -1,7 +1,8 @@
 extends Node
 ## Lights the world to match GameClock: the sun arcs across the sky by day, a
 ## dimmer bluish moon takes over at night, and the sun color, sky and ambient
-## light blend between keyframes for dawn, day, sunset, dusk and night.
+## light blend between keyframes for dawn, day, sunset, dusk and night. Rain
+## (Weather) dims the light and greys out the sky, with a little haze.
 
 ## One look per keyframe, at an hour of the day (0-24). Times in between blend.
 ## Light energy dips near zero around 5:45 and 20:45, where the sun hands over
@@ -35,6 +36,13 @@ const SUNSET := 20.75
 ## The sun swings this far either side of due south, in degrees. Light from
 ## the camera's side keeps the sprites' faces lit.
 @export var sun_swing := 60.0
+@export_group("Rain")
+## How much of the sun or moon gets through in full rain.
+@export var rain_light := 0.35
+@export var rain_ambient := 0.8
+## How grey the sky goes in full rain.
+@export_range(0.0, 1.0) var rain_grey := 0.8
+@export var rain_fog_density := 0.004
 
 var _sky: ProceduralSkyMaterial
 
@@ -62,10 +70,28 @@ func _apply_keyframes(hour: float) -> void:
 	world_environment.environment.ambient_light_energy = lerpf(a[3], b[3], t)
 	var top := (a[4] as Color).lerp(b[4], t)
 	var horizon := (a[5] as Color).lerp(b[5], t)
+
+	var rain := Weather.intensity
+	light.light_energy *= lerpf(1.0, rain_light, rain)
+	world_environment.environment.ambient_light_energy *= lerpf(1.0, rain_ambient, rain)
+	top = top.lerp(_overcast(top), rain * rain_grey)
+	horizon = horizon.lerp(_overcast(horizon), rain * rain_grey)
+	var environment := world_environment.environment
+	environment.fog_enabled = rain > 0.01
+	environment.fog_density = rain_fog_density * rain
+	environment.fog_light_color = horizon
+	environment.fog_light_energy = 1.0
+
 	_sky.sky_top_color = top
 	_sky.sky_horizon_color = horizon
 	_sky.ground_horizon_color = horizon
 	_sky.ground_bottom_color = top.darkened(0.5)
+
+
+## `color` as it looks through rain clouds: grey, and a bit darker.
+func _overcast(color: Color) -> Color:
+	var grey := color.get_luminance() * 0.8
+	return Color(grey, grey, grey * 1.05)
 
 
 func _aim_light(hour: float) -> void:

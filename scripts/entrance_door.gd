@@ -22,6 +22,7 @@ var _armed := false
 
 
 func _ready() -> void:
+	add_to_group("entrance_doors")
 	_trigger.body_entered.connect(_on_body_entered)
 	get_tree().create_timer(ARMING_DELAY).timeout.connect(func() -> void: _armed = true)
 

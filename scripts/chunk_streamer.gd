@@ -10,6 +10,9 @@ extends Node3D
 ## unload_radius, so walking back and forth over a border doesn't thrash.
 ## Radii count chunks, with diagonal neighbors at distance 1.
 ##
+## Chunks can also be built on the spot instead of loaded from files: give it
+## a chunk_source with has_chunk(coord) and build_chunk(coord), like CityGrid.
+##
 ## Loading happens on worker threads. Instantiating stays on the main thread:
 ## GridMap isn't safe to build on a worker thread in Godot 4.7, and errors
 ## come out of _octant_update if you try.
@@ -18,6 +21,8 @@ signal chunk_placed(coord: Vector2i)
 signal chunk_removed(coord: Vector2i)
 
 @export var target: Node3D
+## Builds chunks instead of loading them from chunk_directory, if set.
+@export var chunk_source: Node
 @export_dir var chunk_directory := "res://world/test_city"
 @export var chunk_size := 32.0
 @export var load_radius := 1
@@ -46,6 +51,11 @@ func _ready() -> void:
 	# Place the starting chunks right away, so the target has ground to stand on.
 	_center = chunk_of(target.global_position)
 	for coord in _coords_by_distance(load_radius):
+		if chunk_source:
+			if chunk_source.has_chunk(coord):
+				_loaded[coord] = true
+				_place(coord)
+			continue
 		var path := chunk_path(coord)
 		if ResourceLoader.exists(path):
 			_loaded[coord] = load(path)
@@ -74,9 +84,20 @@ func placed_count() -> int:
 	return _placed.size()
 
 
+## Whether the chunk under `point` is in the scene, with ground to stand on.
+func is_loaded_at(point: Vector3) -> bool:
+	return _placed.has(chunk_of(point))
+
+
 func _request_nearby() -> void:
 	for coord in _coords_by_distance(prefetch_radius):
 		if _placed.has(coord) or _loading.has(coord) or _loaded.has(coord) or _missing.has(coord):
+			continue
+		if chunk_source:
+			if chunk_source.has_chunk(coord):
+				_loaded[coord] = true  # built when it's placed
+			else:
+				_missing[coord] = true
 			continue
 		var path := chunk_path(coord)
 		if not ResourceLoader.exists(path):
@@ -110,7 +131,7 @@ func _place_ready_chunks() -> void:
 
 
 func _place(coord: Vector2i) -> void:
-	var chunk: Node3D = _loaded[coord].instantiate()
+	var chunk: Node3D = chunk_source.build_chunk(coord) if chunk_source else _loaded[coord].instantiate()
 	chunk.name = "Chunk_%d_%d" % [coord.x, coord.y]
 	# Position before adding, so everything inside spawns where it belongs.
 	chunk.position = Vector3(coord.x * chunk_size, 0.0, coord.y * chunk_size)

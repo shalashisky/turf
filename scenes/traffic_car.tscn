@@ -1,0 +1,88 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/traffic_car.gd" id="1_script"]
+
+[sub_resource type="BoxMesh" id="body_mesh"]
+size = Vector3(1.8, 0.6, 3.8)
+
+[sub_resource type="StandardMaterial3D" id="glass_mat"]
+albedo_color = Color(0.12, 0.15, 0.2, 1)
+roughness = 0.15
+
+[sub_resource type="BoxMesh" id="cabin_mesh"]
+material = SubResource("glass_mat")
+size = Vector3(1.6, 0.5, 1.9)
+
+[sub_resource type="StandardMaterial3D" id="tire_mat"]
+albedo_color = Color(0.06, 0.06, 0.07, 1)
+
+[sub_resource type="BoxMesh" id="tire_mesh"]
+material = SubResource("tire_mat")
+size = Vector3(0.25, 0.55, 0.6)
+
+[sub_resource type="StandardMaterial3D" id="headlight_mat"]
+shading_mode = 0
+albedo_color = Color(1, 0.95, 0.75, 1)
+
+[sub_resource type="BoxMesh" id="headlight_mesh"]
+material = SubResource("headlight_mat")
+size = Vector3(0.35, 0.15, 0.05)
+
+[sub_resource type="StandardMaterial3D" id="taillight_mat"]
+shading_mode = 0
+albedo_color = Color(0.9, 0.1, 0.1, 1)
+
+[sub_resource type="BoxMesh" id="taillight_mesh"]
+material = SubResource("taillight_mat")
+size = Vector3(0.35, 0.15, 0.05)
+
+[sub_resource type="BoxShape3D" id="body_shape"]
+size = Vector3(1.8, 1.15, 3.8)
+
+[node name="TrafficCar" type="CharacterBody3D"]
+collision_mask = 3
+script = ExtResource("1_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.725, 0)
+shape = SubResource("body_shape")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.55, 0)
+mesh = SubResource("body_mesh")
+
+[node name="Cabin" type="MeshInstance3D" parent="."]
+position = Vector3(0, 1.1, 0.2)
+mesh = SubResource("cabin_mesh")
+
+[node name="TireFrontLeft" type="MeshInstance3D" parent="."]
+position = Vector3(-0.85, 0.28, -1.2)
+mesh = SubResource("tire_mesh")
+
+[node name="TireFrontRight" type="MeshInstance3D" parent="."]
+position = Vector3(0.85, 0.28, -1.2)
+mesh = SubResource("tire_mesh")
+
+[node name="TireBackLeft" type="MeshInstance3D" parent="."]
+position = Vector3(-0.85, 0.28, 1.2)
+mesh = SubResource("tire_mesh")
+
+[node name="TireBackRight" type="MeshInstance3D" parent="."]
+position = Vector3(0.85, 0.28, 1.2)
+mesh = SubResource("tire_mesh")
+
+[node name="HeadlightLeft" type="MeshInstance3D" parent="."]
+position = Vector3(-0.55, 0.6, -1.91)
+mesh = SubResource("headlight_mesh")
+
+[node name="HeadlightRight" type="MeshInstance3D" parent="."]
+position = Vector3(0.55, 0.6, -1.91)
+mesh = SubResource("headlight_mesh")
+
+[node name="TaillightLeft" type="MeshInstance3D" parent="."]
+position = Vector3(-0.55, 0.6, 1.91)
+mesh = SubResource("taillight_mesh")
+
+[node name="TaillightRight" type="MeshInstance3D" parent="."]
+position = Vector3(0.55, 0.6, 1.91)
+mesh = SubResource("taillight_mesh")

@@ -4,6 +4,16 @@ extends Node3D
 ## lights up gradually, and flickers on while it warms up.
 ##
 ## The arm reaches out along +Z. Place lamps at the curb, facing the street.
+##
+## A car going fast enough knocks it over (knock_over()): it topples, goes
+## dark, fades out and is gone, and stays gone until the next day.
+
+## How long a knocked-over lamp takes to be gone, falling and fading included.
+const FALLEN_TIME := 2.0
+const FADE_TIME := 0.6
+const FALL_TIME := 0.55
+## How far over it ends up: not quite flat, since the arm props it up.
+const FALLEN_ANGLE := 1.5
 
 @export var on_hour := 19.5
 @export var off_hour := 6.5
@@ -14,6 +24,7 @@ extends Node3D
 @export var warm_up_time := 1.2
 
 var _lit := false
+var _fallen := false
 var _delay_hours := 0.0
 var _tween: Tween
 
@@ -55,6 +66,46 @@ func _switch() -> void:
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	else:
 		_tween.tween_property(_light, "light_energy", 0.0, 0.4)
+
+
+## Knocked over by something going at `push`: it topples that way.
+func knock_over(push: Vector3) -> void:
+	if _fallen:
+		return
+	_fallen = true
+	var grid := get_tree().get_first_node_in_group("city_grid")
+	if grid:
+		grid.forget_lamp(global_position)
+	# Out of the way right now; the falling happens after this physics step.
+	$Body.collision_layer = 0
+	$Body.queue_free()
+	_fall.call_deferred(push)
+
+
+func _fall(push: Vector3) -> void:
+	set_process(false)
+	if _tween:
+		_tween.kill()
+	_light.light_energy = 0.0
+	_head.set_instance_shader_parameter("glow", 0.0)
+
+	# Topple over the base, the way it was hit, picking up speed as it goes,
+	# then bounce once where it lands.
+	var flat := Vector3(push.x, 0.0, push.z)
+	if flat.length() < 0.01:
+		flat = global_basis.z
+	var axis := Vector3.UP.cross(flat.normalized()).normalized()
+	var standing := basis
+	var tip_over := func(angle: float) -> void:
+		basis = Basis(axis, angle) * standing
+	var tween := create_tween()
+	tween.tween_method(tip_over, 0.0, FALLEN_ANGLE, FALL_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_method(tip_over, FALLEN_ANGLE, FALLEN_ANGLE - 0.12, 0.1).set_ease(Tween.EASE_OUT)
+	tween.tween_method(tip_over, FALLEN_ANGLE - 0.12, FALLEN_ANGLE, 0.12).set_ease(Tween.EASE_IN)
+	tween.tween_interval(FALLEN_TIME - FADE_TIME - FALL_TIME - 0.22)
+	for part: GeometryInstance3D in [$Pole, $Arm, $Head]:
+		tween.parallel().tween_property(part, "transparency", 1.0, FADE_TIME).set_delay(FALLEN_TIME - FADE_TIME - FALL_TIME - 0.22)
+	tween.tween_callback(queue_free)
 
 
 ## The bulb glows in step with the light it gives off.

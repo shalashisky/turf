@@ -15,8 +15,14 @@ enum AimMode { MOVE, STICK, MOUSE }
 ## How long an auto-aim snap holds before movement can turn you again.
 @export var auto_aim_hold := 0.3
 
+## Nothing gets thrown closer than this.
+const MIN_THROW_DISTANCE := 2.5
+
 var aim_mode := AimMode.MOVE
 
+## Whether attack was already held last frame, so holding the trigger of an
+## automatic only costs energy once per burst.
+var _trigger_was_held := false
 var _mouse_idle_time := 0.0
 var _aim_hold_time := 0.0
 
@@ -57,8 +63,19 @@ func attack() -> bool:
 			_aim_hold_time = auto_aim_hold
 	if not super():
 		return false
-	WorldState.use_energy(WorldState.ATTACK_ENERGY)
+	# Holding down the trigger of an automatic tires you out once per burst.
+	if not current_weapon().automatic or not _trigger_was_held:
+		WorldState.use_energy(WorldState.ATTACK_ENERGY)
 	return true
+
+
+## Throws land at the cursor when aiming with the mouse, as far as they'll go.
+func _throw_distance(weapon: Weapon) -> float:
+	if aim_mode == AimMode.MOUSE:
+		var to_cursor := _mouse_ground_point() - global_position
+		to_cursor.y = 0.0
+		return clampf(to_cursor.length(), MIN_THROW_DISTANCE, weapon.reach)
+	return weapon.reach
 
 
 func _choose_move_direction(_delta: float) -> Vector3:
@@ -76,8 +93,10 @@ func _choose_facing(move_dir: Vector3, delta: float) -> void:
 	_update_aim(move_dir, delta)
 	if Dialogue.blocks_input():
 		return
-	if Input.is_action_just_pressed("attack"):
+	var trigger := Input.is_action_pressed("attack")
+	if Input.is_action_just_pressed("attack") or (current_weapon().automatic and trigger):
 		attack()
+	_trigger_was_held = trigger
 	if Input.is_action_just_pressed("interact"):
 		_interact_with_nearest()
 

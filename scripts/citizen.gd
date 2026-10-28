@@ -566,6 +566,7 @@ func _build_weapon_sprite() -> void:
 	_weapon_sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	_weapon_sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
 	_weapon_sprite.layers = _sprite.layers
+	_weapon_sprite.shaded = _sprite.shaded
 	_weapon_pivot.add_child(_weapon_sprite)
 
 

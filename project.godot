@@ -89,6 +89,7 @@ common/physics_interpolation=true
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0
+lights_and_shadows/directional_shadow/size=2048
 
 [shader_globals]
 
@@ -100,3 +101,7 @@ camera_position={
 "type": "vec3",
 "value": Vector3(0, 0, 0)
 }
+
+[autoload]
+
+GameClock="*res://scripts/game_clock.gd"

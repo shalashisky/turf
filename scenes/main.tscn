@@ -12,6 +12,9 @@
 [ext_resource type="PackedScene" path="res://scenes/spawn_door.tscn" id="10_door"]
 [ext_resource type="Resource" path="res://weapons/knife.tres" id="11_knife"]
 [ext_resource type="Resource" path="res://weapons/brass_knuckles.tres" id="12_brass"]
+[ext_resource type="Script" path="res://scripts/day_night.gd" id="13_day_night"]
+[ext_resource type="Script" path="res://scripts/clock_label.gd" id="14_clock"]
+[ext_resource type="PackedScene" path="res://scenes/street_lamp.tscn" id="15_lamp"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.25, 0.2, 0.42, 1)
@@ -34,10 +37,18 @@ tonemap_mode = 2
 environment = SubResource("env")
 
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=394922460]
+physics_interpolation_mode = 2
 transform = Transform3D(0.62161, -0.533946, 0.5731516, 0, 0.73168886, 0.6816388, -0.7833269, -0.42371348, 0.4548251, 0, 0, 0)
 light_color = Color(1, 0.85, 0.65, 1)
 light_energy = 1.2
 shadow_enabled = true
+directional_shadow_mode = 1
+directional_shadow_max_distance = 45.0
+
+[node name="DayNight" type="Node" parent="." node_paths=PackedStringArray("light", "world_environment")]
+script = ExtResource("13_day_night")
+light = NodePath("../Sun")
+world_environment = NodePath("../WorldEnvironment")
 
 [node name="CityGrid" type="GridMap" parent="." unique_id=70170018]
 mesh_library = ExtResource("1_tiles")
@@ -76,6 +87,38 @@ weapon = ExtResource("11_knife")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 3)
 weapon = ExtResource("12_brass")
 
+[node name="LampNorth1" parent="." instance=ExtResource("15_lamp")]
+position = Vector3(-10.5, 0, -2.2)
+
+[node name="LampNorth2" parent="." instance=ExtResource("15_lamp")]
+position = Vector3(-5.5, 0, -2.2)
+
+[node name="LampNorth3" parent="." instance=ExtResource("15_lamp")]
+position = Vector3(2.5, 0, -2.2)
+
+[node name="LampNorth4" parent="." instance=ExtResource("15_lamp")]
+position = Vector3(9.5, 0, -2.2)
+
+[node name="LampSouth1" parent="." instance=ExtResource("15_lamp")]
+position = Vector3(-6.5, 0, 1.2)
+rotation = Vector3(0, 3.14159, 0)
+
+[node name="LampSouth2" parent="." instance=ExtResource("15_lamp")]
+position = Vector3(3.5, 0, 1.2)
+rotation = Vector3(0, 3.14159, 0)
+
+[node name="LampSouth3" parent="." instance=ExtResource("15_lamp")]
+position = Vector3(10.5, 0, 1.2)
+rotation = Vector3(0, 3.14159, 0)
+
+[node name="LampSideWest" parent="." instance=ExtResource("15_lamp")]
+position = Vector3(-3.2, 0, 5.5)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="LampSideEast" parent="." instance=ExtResource("15_lamp")]
+position = Vector3(0.2, 0, 6.5)
+rotation = Vector3(0, -1.5708, 0)
+
 [node name="SpawnDoorWest" parent="." instance=ExtResource("10_door")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -3)
 
@@ -91,3 +134,18 @@ theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
 script = ExtResource("6_hud")
 player = NodePath("../../Player")
+
+[node name="Clock" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -260.0
+offset_top = 8.0
+offset_right = -12.0
+offset_bottom = 66.0
+grow_horizontal = 0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 2
+script = ExtResource("14_clock")

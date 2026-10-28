@@ -18,6 +18,8 @@ cash.png: 14x8 dollar bill, for cash drops.
 pistol.png: 14x9 pistol pointing right, grip at the left.
 weed_bag.png: 12x12 knotted baggie of green buds, a hotbar icon.
 seed_packet.png: 10x12 paper seed packet with a leaf on it, a hotbar icon.
+burger.png: 12x10 burger, a hotbar icon.
+cocaine.png: 10x10 little baggie of white powder, a hotbar icon.
 molotov.png: 14x7 bottle lying neck-right, with a burning rag in the neck.
 tec9.png: 20x11 machine pistol pointing right: long receiver, perforated
   barrel shroud, and the magazine in front of the grip.
@@ -329,6 +331,8 @@ def main():
     write_png(art / "molotov.png", draw_molotov())
     write_png(art / "weed_bag.png", draw_weed_bag())
     write_png(art / "seed_packet.png", draw_seed_packet())
+    write_png(art / "burger.png", draw_burger())
+    write_png(art / "cocaine.png", draw_cocaine())
     write_png(art / "nightstick.png", draw_nightstick())
     write_png(art / "cop_8dir.png", draw_sheet(COP, arrow=False))
     write_png(art / "shadow_blob.png", draw_blob(32))
@@ -484,6 +488,37 @@ def draw_seed_packet():
     rect(image, 4, 4, 5, 8, leaf)  # stem and leaf
     rect(image, 2, 5, 7, 5, leaf)
     rect(image, 3, 4, 6, 4, leaf)
+    add_outline(image)
+    return image
+
+
+def draw_burger():
+    image = new_image(12, 10)
+    bun = (205, 140, 60, 255)
+    bun_light = (235, 180, 95, 255)
+    lettuce = (90, 170, 60, 255)
+    patty = (95, 55, 35, 255)
+    cheese = (245, 200, 50, 255)
+    rect(image, 2, 1, 9, 3, bun)  # top bun
+    rect(image, 3, 1, 8, 1, bun_light)
+    rect(image, 1, 4, 10, 4, lettuce)
+    rect(image, 1, 5, 10, 5, cheese)
+    rect(image, 1, 6, 10, 6, patty)
+    rect(image, 2, 7, 9, 8, bun)  # bottom bun
+    add_outline(image)
+    return image
+
+
+def draw_cocaine():
+    image = new_image(10, 10)
+    plastic = (215, 225, 230, 255)
+    powder = (250, 250, 250, 255)
+    shade = (200, 205, 210, 255)
+    rect(image, 3, 1, 6, 2, plastic)  # twist at the top
+    rect(image, 2, 3, 7, 8, plastic)
+    rect(image, 3, 5, 6, 7, powder)
+    image[7][3] = shade
+    image[7][6] = shade
     add_outline(image)
     return image
 

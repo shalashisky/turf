@@ -195,7 +195,7 @@ area = Rect2(-139, -107, 137.5, 110)
 [node name="TurfNortheast" type="Node3D" parent="." unique_id=2079187818]
 script = ExtResource("27_territory")
 id = "northeast"
-starting_owner = &"player"
+starting_owner = &"crew"
 area = Rect2(-1.5, -107, 140.5, 110)
 
 [node name="TurfSouthwest" type="Node3D" parent="." unique_id=756275950]

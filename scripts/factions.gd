@@ -10,7 +10,9 @@ extends Node
 
 enum Stance { FRIENDLY, NEUTRAL, HOSTILE }
 
-const PLAYER := &"player"
+## The player's own crew, the player included. (Not "player": factions name
+## groups, and that one's just for the player.)
+const PLAYER := &"crew"
 const DUMMY_GANG := &"dummy_gang"
 const PANTHERS := &"panthers"
 const YELLOWS := &"yellows"

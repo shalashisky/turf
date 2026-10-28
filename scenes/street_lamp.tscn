@@ -1,0 +1,59 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/street_lamp.gd" id="1_script"]
+[ext_resource type="Shader" path="res://shaders/lamp_bulb.gdshader" id="2_bulb"]
+
+[sub_resource type="StandardMaterial3D" id="metal_mat"]
+albedo_color = Color(0.2, 0.24, 0.22, 1)
+roughness = 0.6
+
+[sub_resource type="CylinderMesh" id="pole_mesh"]
+material = SubResource("metal_mat")
+top_radius = 0.05
+bottom_radius = 0.07
+height = 3.2
+radial_segments = 8
+
+[sub_resource type="BoxMesh" id="arm_mesh"]
+material = SubResource("metal_mat")
+size = Vector3(0.07, 0.07, 0.75)
+
+[sub_resource type="BoxMesh" id="head_mesh"]
+size = Vector3(0.24, 0.1, 0.36)
+
+[sub_resource type="ShaderMaterial" id="bulb_mat"]
+shader = ExtResource("2_bulb")
+
+[sub_resource type="CylinderShape3D" id="pole_shape"]
+height = 3.2
+radius = 0.1
+
+[node name="StreetLamp" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="Pole" type="MeshInstance3D" parent="."]
+position = Vector3(0, 1.6, 0)
+mesh = SubResource("pole_mesh")
+
+[node name="Arm" type="MeshInstance3D" parent="."]
+position = Vector3(0, 3.15, 0.33)
+mesh = SubResource("arm_mesh")
+
+[node name="Head" type="MeshInstance3D" parent="."]
+position = Vector3(0, 3.1, 0.68)
+cast_shadow = 0
+mesh = SubResource("head_mesh")
+material_override = SubResource("bulb_mat")
+
+[node name="Light" type="OmniLight3D" parent="."]
+position = Vector3(0, 2.9, 0.68)
+light_color = Color(1, 0.62, 0.28, 1)
+light_energy = 0.0
+omni_range = 6.5
+omni_attenuation = 1.4
+
+[node name="Body" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Body"]
+position = Vector3(0, 1.6, 0)
+shape = SubResource("pole_shape")

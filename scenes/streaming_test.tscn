@@ -1,0 +1,92 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/chunk_streamer.gd" id="1_streamer"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/camera_rig.tscn" id="3_camera"]
+[ext_resource type="Script" path="res://scripts/day_night.gd" id="4_day_night"]
+[ext_resource type="Script" path="res://scripts/hud.gd" id="5_hud"]
+[ext_resource type="Script" path="res://scripts/clock_label.gd" id="6_clock"]
+[ext_resource type="Script" path="res://scripts/perf_overlay.gd" id="7_perf"]
+
+[sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
+sky_top_color = Color(0.25, 0.2, 0.42, 1)
+sky_horizon_color = Color(0.95, 0.6, 0.42, 1)
+ground_bottom_color = Color(0.12, 0.1, 0.12, 1)
+ground_horizon_color = Color(0.95, 0.6, 0.42, 1)
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_source = 3
+tonemap_mode = 2
+
+[node name="StreamingTest" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+physics_interpolation_mode = 2
+shadow_enabled = true
+directional_shadow_mode = 1
+directional_shadow_max_distance = 45.0
+
+[node name="DayNight" type="Node" parent="." node_paths=PackedStringArray("light", "world_environment")]
+script = ExtResource("4_day_night")
+light = NodePath("../Sun")
+world_environment = NodePath("../WorldEnvironment")
+
+[node name="World" type="Node3D" parent="." node_paths=PackedStringArray("target")]
+script = ExtResource("1_streamer")
+target = NodePath("../Player")
+
+[node name="Player" parent="." node_paths=PackedStringArray("camera_rig") instance=ExtResource("2_player")]
+position = Vector3(321.5, 0, 321.5)
+camera_rig = NodePath("../CameraRig")
+
+[node name="CameraRig" parent="." node_paths=PackedStringArray("target") instance=ExtResource("3_camera")]
+target = NodePath("../Player")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Help" type="Label" parent="HUD" node_paths=PackedStringArray("player")]
+offset_left = 12.0
+offset_top = 8.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+script = ExtResource("5_hud")
+player = NodePath("../../Player")
+
+[node name="Clock" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -260.0
+offset_top = 8.0
+offset_right = -12.0
+offset_bottom = 66.0
+grow_horizontal = 0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 2
+script = ExtResource("6_clock")
+
+[node name="Perf" type="Label" parent="HUD" node_paths=PackedStringArray("streamer")]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -130.0
+offset_right = 420.0
+offset_bottom = -8.0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.7, 1, 0.7, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+vertical_alignment = 2
+script = ExtResource("7_perf")
+streamer = NodePath("../../World")

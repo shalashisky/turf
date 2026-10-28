@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://art/pistol.png" id="2_texture"]
+
+[resource]
+script = ExtResource("1_script")
+display_name = "Pistol"
+texture = ExtResource("2_texture")
+swing_style = 2
+visible_when_idle = true
+grip_pixels = 4
+damage = 18
+reach = 14.0
+arc_degrees = 0.0
+knockback = 4.0
+knockback_lift = 1.0
+swing_time = 0.12
+cooldown = 0.35
+move_speed_factor = 0.95
+max_ammo = 12
+projectile_speed = 32.0
+spread_degrees = 3.0

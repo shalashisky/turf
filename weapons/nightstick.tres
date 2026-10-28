@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://art/nightstick.png" id="2_texture"]
+
+[resource]
+script = ExtResource("1_script")
+display_name = "Nightstick"
+texture = ExtResource("2_texture")
+grip_pixels = 3
+damage = 20
+reach = 1.9
+arc_degrees = 120.0
+knockback = 6.0
+knockback_lift = 2.5
+swing_time = 0.18
+cooldown = 0.3
+move_speed_factor = 1.0

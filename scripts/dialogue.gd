@@ -32,6 +32,7 @@ var _opened_at := 0
 var _closed_at := -INPUT_GRACE_MS
 
 @onready var _speaker: Label = %Speaker
+@onready var _name_plate: Control = $NamePlate
 @onready var _text: RichTextLabel = %Text
 @onready var _portrait: TextureRect = %Portrait
 @onready var _options: GridContainer = %Options
@@ -75,6 +76,7 @@ func _show_line(speaker: String, portrait: Texture2D, text: String, options: Arr
 		get_tree().paused = true
 		_opened_at = Time.get_ticks_msec()
 	_speaker.text = speaker
+	_name_plate.visible = not speaker.is_empty()
 	_portrait.texture = portrait
 	_portrait.visible = portrait != null
 	_clear_options()

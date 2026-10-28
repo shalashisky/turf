@@ -26,6 +26,7 @@ var _aim_hold_time := 0.0
 func _ready() -> void:
 	super()
 	add_to_group("player")
+	died.connect(Factions.clear_wanted)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -43,7 +44,7 @@ func aim_mode_name() -> String:
 
 ## Allied neighbors fight on our side, so our swings don't hit them.
 func _is_ally(other: Citizen) -> bool:
-	return other is Neighbor and other.is_allied()
+	return (other is Neighbor and other.is_allied()) or super(other)
 
 
 func attack() -> bool:
@@ -54,7 +55,10 @@ func attack() -> bool:
 		if target:
 			facing = _flat_offset_to(target).normalized()
 			_aim_hold_time = auto_aim_hold
-	return super()
+	if not super():
+		return false
+	WorldState.use_energy(WorldState.ATTACK_ENERGY)
+	return true
 
 
 func _choose_move_direction(_delta: float) -> Vector3:
@@ -132,14 +136,21 @@ func _find_auto_aim_target() -> Node3D:
 	var best: Node3D = null
 	var best_score := INF
 	var half_cone := deg_to_rad(auto_aim_cone_degrees) * 0.5
-	for enemy: Node3D in get_tree().get_nodes_in_group("enemies"):
+	# Guns reach further than the usual auto-aim range.
+	var aim_range := maxf(auto_aim_range, attack_reach())
+	for enemy: Citizen in get_tree().get_nodes_in_group("citizens"):
+		# Rival gangs, and anyone else who's actually fighting us.
+		var fighting_us := enemy is Npc and (enemy as Npc).target == self
+		if enemy == self or enemy.is_down or _is_ally(enemy) \
+				or not (is_hostile_to(enemy) or fighting_us):
+			continue
 		var to_enemy := _flat_offset_to(enemy)
 		var distance := to_enemy.length()
 		var angle := facing.angle_to(to_enemy)
-		if distance > auto_aim_range or angle > half_cone:
+		if distance > aim_range or angle > half_cone:
 			continue
 		# Prefer close targets, then ones already in front of you.
-		var score := distance / auto_aim_range + angle / half_cone
+		var score := distance / aim_range + angle / half_cone
 		if score < best_score:
 			best = enemy
 			best_score = score

@@ -9,6 +9,9 @@ extends Node
 
 signal inventory_changed
 signal money_changed
+signal energy_changed
+## Energy just hit zero. DayCycle makes the player pass out.
+signal out_of_energy
 signal reputation_changed(npc_id: String)
 
 ## Fed growing time from seed to harvest: two in-game days.
@@ -17,6 +20,10 @@ const GROW_MINUTES := 2.0 * 24.0 * 60.0
 const NUTRIENT_MINUTES := 24.0 * 60.0
 ## Buds per harvest.
 const HARVEST_YIELD := Vector2i(3, 6)
+const MAX_ENERGY := 100.0
+## Energy each action costs.
+const ATTACK_ENERGY := 1.0
+const PLANT_WORK_ENERGY := 4.0
 
 ## How each inventory item is shown to the player.
 const ITEM_NAMES := {"weed": "Weed", "weed_seed": "Weed Seed"}
@@ -28,8 +35,11 @@ enum TrayState { EMPTY, GROWING, READY }
 ## What the player is carrying, by item id. Starts with a few seeds.
 var inventory := {"weed_seed": 3}
 var money := 25
-## Turf the player has taken over, by turf id.
-var owned_turf := {}
+## Spent on attacking and tending plants; refilled by sleeping.
+var energy := MAX_ENERGY
+## Who holds each Territory, by territory id. Territories not listed are
+## still held by their starting gang.
+var territory_owners := {}
 ## How much each neighbor likes the player, by NPC id.
 var reputation := {}
 
@@ -46,6 +56,21 @@ func add_item(item: String, count: int) -> void:
 	inventory_changed.emit()
 
 
+func use_energy(amount: float) -> void:
+	if energy <= 0.0:
+		return
+	energy = maxf(energy - amount, 0.0)
+	energy_changed.emit()
+	if energy <= 0.0:
+		out_of_energy.emit()
+
+
+## Refills energy to `fraction` of the maximum.
+func restore_energy(fraction: float) -> void:
+	energy = MAX_ENERGY * fraction
+	energy_changed.emit()
+
+
 func add_money(amount: int) -> void:
 	money = maxi(money + amount, 0)
 	money_changed.emit()
@@ -59,12 +84,12 @@ func spend_money(amount: int) -> bool:
 	return true
 
 
-func owns_turf(turf_id: String) -> bool:
-	return owned_turf.get(turf_id, false)
+func territory_owner(territory_id: String, starting_owner: StringName) -> StringName:
+	return territory_owners.get(territory_id, starting_owner)
 
 
-func claim_turf(turf_id: String) -> void:
-	owned_turf[turf_id] = true
+func set_territory_owner(territory_id: String, faction: StringName) -> void:
+	territory_owners[territory_id] = faction
 
 
 func item_name(item: String) -> String:

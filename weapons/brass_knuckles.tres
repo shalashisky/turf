@@ -18,3 +18,4 @@ knockback = 4.0
 knockback_lift = 1.8
 swing_time = 0.16
 cooldown = 0.25
+move_speed_factor = 1.0

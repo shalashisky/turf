@@ -62,9 +62,9 @@ func _fight_going_on() -> bool:
 	for war in get_tree().get_nodes_in_group("turf_wars"):
 		if war.active:
 			return true
-	for enemy: Npc in get_tree().get_nodes_in_group("enemies"):
-		if enemy.target and is_instance_valid(enemy.target) and not enemy.target.is_down \
-				and enemy.global_position.distance_to(global_position) < shelter_range:
+	for npc: Npc in get_tree().get_nodes_in_group("npcs"):
+		if npc.target and is_instance_valid(npc.target) and not npc.target.is_down \
+				and npc.global_position.distance_to(global_position) < shelter_range:
 			return true
 	return false
 

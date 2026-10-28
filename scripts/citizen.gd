@@ -15,6 +15,12 @@ signal got_up
 
 const BLOOD_BURST := preload("res://scenes/effects/blood_burst.tscn")
 const BLOCK_SPARK := preload("res://scenes/effects/block_spark.tscn")
+const PROJECTILE := preload("res://scenes/projectile.tscn")
+const MUZZLE_FLASH := preload("res://scenes/effects/muzzle_flash.tscn")
+## Someone bumping into a knife can only be cut this often, in seconds.
+const CONTACT_COOLDOWN := 0.6
+## Damage from being hit by a car, per m/s it was going.
+const VEHICLE_DAMAGE_PER_SPEED := 3.0
 const DUST_PUFF := preload("res://scenes/effects/dust_puff.tscn")
 ## Landing faster than this (m/s) kicks up dust.
 const DUST_FALL_SPEED := 3.0
@@ -22,6 +28,10 @@ const DUST_FALL_SPEED := 3.0
 const HAND_HEIGHT := 0.55
 ## Physics layer for the level geometry. Citizens live on layer 2.
 const WORLD_LAYER := 1
+
+## Which side they're on. See Factions for who gets along with whom. They're
+## also put in a group of the same name.
+@export var faction := &"civilians"
 
 @export_group("Movement")
 @export var move_speed := 5.0
@@ -110,6 +120,8 @@ const WORLD_LAYER := 1
 var facing := Vector3.FORWARD
 var is_swimming := false
 var equipped_weapon: Weapon
+## Shots left in the equipped gun.
+var ammo := 0
 var health := 0
 ## Holding a guard up: slower, can't attack, takes less from hits in front.
 var is_blocking := false
@@ -136,6 +148,7 @@ var _sprite_scale := Vector2.ONE
 ## Set when a hit pops us into the air, so that landing doesn't kick up dust.
 var _knocked_airborne := false
 var _attack_cooldown_left := 0.0
+var _contact_cooldown_left := 0.0
 var _swing_time_left := 0.0
 ## Weapon angle relative to facing, in radians, counterclockwise on screen.
 var _weapon_angle := 0.0
@@ -160,6 +173,7 @@ var _living_collision_mask := 0
 
 func _ready() -> void:
 	add_to_group("citizens")
+	add_to_group(faction)
 	_spawn_position = global_position
 	health = max_health
 	_build_weapon_sprite()
@@ -182,6 +196,7 @@ func _physics_process(delta: float) -> void:
 		_on_landed(fall_speed)
 	_attack_cooldown_left -= delta
 	_swing_time_left -= delta
+	_contact_cooldown_left -= delta
 
 	_push_bodies()
 	_push_velocity = _push_velocity.move_toward(Vector3.ZERO, push_friction * delta)
@@ -236,10 +251,12 @@ func wants_weapon(_weapon: Weapon) -> bool:
 	return true
 
 
-## Holds `weapon`, dropping whatever was held before.
-func equip(weapon: Weapon) -> void:
+## Holds `weapon`, dropping whatever was held before. Guns come with
+## `with_ammo` shots, or full if that's negative.
+func equip(weapon: Weapon, with_ammo := -1) -> void:
 	drop_weapon()
 	equipped_weapon = weapon
+	ammo = weapon.max_ammo if with_ammo < 0 else with_ammo
 	_weapon_angle = _weapon_rest_angle()
 	_squash(Vector2(1.15, 0.88))
 
@@ -250,7 +267,9 @@ func drop_weapon() -> void:
 		return
 	var pickup: WeaponPickup = load("res://scenes/weapon_pickup.tscn").instantiate()
 	pickup.weapon = equipped_weapon
+	pickup.ammo = ammo
 	equipped_weapon = null
+	ammo = 0
 	# Float on the water rather than under it.
 	var at := global_position
 	at.y = maxf(at.y, water_surface_height())
@@ -270,14 +289,28 @@ func can_attack() -> bool:
 	return not is_down and not is_blocking and _attack_cooldown_left <= 0.0
 
 
-## Melee swing in the facing direction with the current weapon. Hits every
-## other citizen in its arc. Returns false while still cooling down.
+## Whether the current weapon is a gun with shots left.
+func can_shoot() -> bool:
+	return current_weapon().swing_style == Weapon.SwingStyle.SHOOT and ammo > 0
+
+
+## How close a target has to be to get hit.
+func attack_reach() -> float:
+	return current_weapon().reach
+
+
+## Attacks in the facing direction with the current weapon: a shot from a gun,
+## otherwise a melee swing that hits every other citizen in its arc. Returns
+## false while still cooling down.
 func attack() -> bool:
 	if not can_attack():
 		return false
 	var weapon := current_weapon()
 	_attack_cooldown_left = weapon.cooldown
 	_swing_time_left = weapon.swing_time
+	if weapon.swing_style == Weapon.SwingStyle.SHOOT:
+		_shoot(weapon)
+		return true
 	var half_arc := deg_to_rad(weapon.arc_degrees) * 0.5
 	for other: Citizen in get_tree().get_nodes_in_group("citizens"):
 		if other == self or _is_ally(other):
@@ -288,30 +321,87 @@ func attack() -> bool:
 	return true
 
 
-## Allies are never hit by our attacks. Nobody has allies by default.
-func _is_ally(_other: Citizen) -> bool:
-	return false
+func _shoot(weapon: Weapon) -> void:
+	ammo -= 1
+	var spread := deg_to_rad(randf_range(-weapon.spread_degrees, weapon.spread_degrees))
+	var direction := facing.rotated(Vector3.UP, spread)
+	var muzzle := global_position + Vector3.UP * HAND_HEIGHT + facing * 0.55
+	var bullet: Projectile = PROJECTILE.instantiate()
+	bullet.shooter = self
+	bullet.weapon = weapon
+	bullet.velocity = direction * weapon.projectile_speed
+	var parent := get_parent() as Node3D
+	bullet.position = parent.to_local(muzzle) if parent else muzzle
+	get_parent().add_child(bullet)
+	bullet.reset_physics_interpolation()
+	_spawn_effect(BLOCK_SPARK, muzzle, direction)
+	var flash: Node3D = MUZZLE_FLASH.instantiate()
+	flash.position = parent.to_local(muzzle) if parent else muzzle
+	get_parent().add_child(flash)
+	_squash(Vector2(1.08, 0.94))
+	# No reloading: an empty gun gets tossed.
+	if ammo <= 0:
+		drop_weapon()
+
+
+## Allies are never hit by our attacks: by default, anyone in a friendly faction.
+func _is_ally(other: Citizen) -> bool:
+	return Factions.stance(faction, other.faction) == Factions.Stance.FRIENDLY
+
+
+## Whether they'd attack `other` on sight.
+func is_hostile_to(other: Citizen) -> bool:
+	return Factions.stance(faction, other.faction) == Factions.Stance.HOSTILE
 
 
 ## Takes the weapon's damage and gets knocked back away from the attacker,
 ## harder for heavier weapons.
 func hit(attacker: Citizen, weapon: Weapon) -> void:
+	_take_hit(attacker, weapon.damage, weapon.knockback, weapon.knockback_lift)
+
+
+## Cut by bumping into someone holding a contact weapon, like a knife.
+func contact_hit(attacker: Citizen, weapon: Weapon) -> void:
+	if _contact_cooldown_left > 0.0 or attacker._is_ally(self):
+		return
+	_contact_cooldown_left = CONTACT_COOLDOWN
+	_take_hit(attacker, weapon.contact_damage, weapon.contact_knockback, 0.0)
+
+
+## Hit by a car going at `car_velocity`: thrown along with it, and hurt
+## more the faster it was going.
+func struck_by_vehicle(car_velocity: Vector3) -> void:
+	var flat := Vector3(car_velocity.x, 0.0, car_velocity.z)
+	var speed := flat.length()
+	_take_hit(null, roundi(speed * VEHICLE_DAMAGE_PER_SPEED), speed * 0.9, 4.0, flat.normalized())
+
+
+## How this citizen reacts to being hit: fight back, run, hold a grudge. Called
+## after the damage is done, even if it knocked them down. Nothing by default.
+func _react_to_hit(_attacker: Citizen) -> void:
+	pass
+
+
+## `direction` is which way to be knocked when there's no attacker to be
+## knocked away from, like being hit by a car.
+func _take_hit(attacker: Citizen, damage: int, knockback: float, lift: float, direction := Vector3.ZERO) -> void:
 	if is_down:
 		return
-	var away := _flat_offset_from(attacker)
-	away = away.normalized() if away.length() > 0.01 else attacker.facing
+	var away := direction
+	if attacker:
+		away = _flat_offset_from(attacker)
+		away = away.normalized() if away.length() > 0.01 else attacker.facing
 	var blocked := is_blocking and facing.angle_to(-away) <= deg_to_rad(block_arc_degrees) * 0.5
-	var damage := weapon.damage
 	if blocked:
 		# The guard takes most of it: a shove, a spark, and a little damage.
-		push(away * weapon.knockback * block_knockback_factor)
-		damage = roundi(weapon.damage * (1.0 - block_damage_reduction))
+		push(away * knockback * block_knockback_factor)
+		damage = roundi(damage * (1.0 - block_damage_reduction))
 		_squash(Vector2(1.1, 0.92))
 		_spawn_effect(BLOCK_SPARK, global_position + Vector3.UP * 0.8 - away * 0.35, -away + Vector3.UP * 0.5)
 	else:
-		push(away * weapon.knockback)
-		if is_on_floor() or is_swimming:
-			velocity.y = weapon.knockback_lift
+		push(away * knockback)
+		if lift > 0.0 and (is_on_floor() or is_swimming):
+			velocity.y = lift
 			_knocked_airborne = true
 		if _flash:
 			_flash.kill()
@@ -327,9 +417,10 @@ func hit(attacker: Citizen, weapon: Weapon) -> void:
 			knock_out(away)
 		else:
 			die(away)
-	# Let neighbors nearby know there's a fight on.
+	_react_to_hit(attacker)
+	# Let bystanders nearby know there's a fight on.
 	if attacker:
-		get_tree().call_group("neighbors", "notice_fight", attacker, self)
+		get_tree().call_group("npcs", "notice_fight", attacker, self)
 
 
 ## Topples over sideways, lies there for a bit, then fades out and despawns
@@ -472,6 +563,7 @@ func _update_swimming() -> void:
 
 func _update_walk_velocity(move_dir: Vector3, delta: float) -> void:
 	var speed := move_speed * (swim_speed_factor if is_swimming else 1.0)
+	speed *= current_weapon().move_speed_factor
 	if is_blocking:
 		speed *= block_move_factor
 	var target := Vector3(move_dir.x, 0.0, move_dir.z) * speed
@@ -520,6 +612,7 @@ func _push_bodies() -> void:
 		var other := collision.get_collider() as Citizen
 		if other == null:
 			continue
+		_check_contact_weapons(other)
 		var direction := -collision.get_normal()
 		direction.y = 0.0
 		if direction.is_zero_approx():
@@ -532,6 +625,19 @@ func _push_bodies() -> void:
 		pushing = true
 	if pushing:
 		_walk_velocity = _walk_velocity.limit_length(max_push_speed)
+
+
+## Contact weapons like knives cut whoever bumps into them, whichever of the
+## two was doing the bumping.
+func _check_contact_weapons(other: Citizen) -> void:
+	if is_down or other.is_down:
+		return
+	var mine := current_weapon()
+	if mine.contact_damage > 0:
+		other.contact_hit(self, mine)
+	var theirs := other.current_weapon()
+	if theirs.contact_damage > 0:
+		contact_hit(other, theirs)
 
 
 func _respawn_if_fallen() -> void:
@@ -664,7 +770,7 @@ func _build_weapon_sprite() -> void:
 ## Jabs point straight ahead.
 func _weapon_rest_angle() -> float:
 	var weapon := current_weapon()
-	if weapon.swing_style == Weapon.SwingStyle.JAB:
+	if weapon.swing_style != Weapon.SwingStyle.ARC:
 		return 0.0
 	return deg_to_rad(weapon.arc_degrees) * 0.5
 
@@ -696,6 +802,10 @@ func _update_weapon_sprite(delta: float) -> void:
 			# Shoot straight out and pull back.
 			_weapon_angle = 0.0
 			thrust = sin(progress * PI) * weapon.jab_distance
+		Weapon.SwingStyle.SHOOT:
+			# Held out front, kicking back a little with each shot.
+			_weapon_angle = 0.0
+			thrust = 0.1 - sin(progress * PI) * 0.15
 	if is_blocking and not swinging:
 		# Guard up: held across the body, pointing up on screen.
 		_weapon_angle = lerp_angle(_weapon_angle, PI * 0.5, 1.0 - exp(-25.0 * delta))

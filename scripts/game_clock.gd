@@ -1,8 +1,9 @@
 extends Node
 ## The in-game clock and calendar, autoloaded as GameClock.
 ##
-## A day runs from 6:00 AM until 2:00 AM the next morning, then the next day
-## starts at 6:00 AM. Time moves continuously, but like most life sims it's
+## A day runs from 6:00 AM until 2:00 AM the next morning. The clock stops at
+## 2:00 AM and signals out_of_time (DayCycle makes the player pass out), and
+## the next day starts at 6:00 AM when start_next_day() is called. Time moves continuously, but like most life sims it's
 ## shown in 10-minute steps.
 ##
 ## Debug: [ and ] jump an hour back or forward.
@@ -10,6 +11,8 @@ extends Node
 ## Fired whenever the shown time ticks over to the next 10 minutes.
 signal time_changed
 signal day_started(day_index: int)
+## It's 2:00 AM and the day's over.
+signal out_of_time
 
 const DAY_START_MINUTE := 6 * 60
 ## 2:00 AM the next morning, counted on from the same day's midnight.
@@ -29,14 +32,19 @@ var minutes := float(DAY_START_MINUTE)
 var day_index := 0
 
 var _shown_minute := -1
+var _out_of_time := false
 
 
 func _process(delta: float) -> void:
 	if paused:
 		return
+	if _out_of_time:
+		return
 	minutes += delta / seconds_per_minute
 	if minutes >= DAY_END_MINUTE:
-		_start_next_day()
+		minutes = DAY_END_MINUTE
+		_out_of_time = true
+		out_of_time.emit()
 	_notify_if_time_changed()
 
 
@@ -78,21 +86,29 @@ func time_text() -> String:
 
 
 ## "Mon, Spring 1", plus the year from year 2 on.
-@warning_ignore("integer_division")
 func date_text() -> String:
+	return date_text_for(day_index)
+
+
+## date_text() for any day, counting from 0.
+@warning_ignore("integer_division")
+func date_text_for(day: int) -> String:
 	var days_per_year := DAYS_PER_SEASON * SEASONS.size()
-	var season: String = SEASONS[(day_index % days_per_year) / DAYS_PER_SEASON]
-	var day_of_season := day_index % DAYS_PER_SEASON + 1
-	var weekday: String = WEEKDAYS[day_index % WEEKDAYS.size()]
-	var year := day_index / days_per_year + 1
+	var season: String = SEASONS[(day % days_per_year) / DAYS_PER_SEASON]
+	var day_of_season := day % DAYS_PER_SEASON + 1
+	var weekday: String = WEEKDAYS[day % WEEKDAYS.size()]
+	var year := day / days_per_year + 1
 	var text := "%s, %s %d" % [weekday, season, day_of_season]
 	return text if year == 1 else "%s, Year %d" % [text, year]
 
 
-func _start_next_day() -> void:
+## 6:00 AM the next day.
+func start_next_day() -> void:
 	day_index += 1
 	minutes = DAY_START_MINUTE
+	_out_of_time = false
 	day_started.emit(day_index)
+	_notify_if_time_changed()
 
 
 func _notify_if_time_changed() -> void:

@@ -54,13 +54,16 @@ func _refresh() -> void:
 
 
 func _on_used(_by: Citizen) -> void:
+	var worked := true
 	match WorldState.tray_state(tray_id):
 		WorldState.TrayState.EMPTY:
-			WorldState.plant_tray(tray_id)
+			worked = WorldState.plant_tray(tray_id)
 		WorldState.TrayState.READY:
 			WorldState.harvest_tray(tray_id)
 		WorldState.TrayState.GROWING:
 			WorldState.top_up_tray(tray_id)
+	if worked:
+		WorldState.use_energy(WorldState.PLANT_WORK_ENERGY)
 	_refresh()
 	# A little bounce, so you can see it took.
 	_plant.scale = _plant_rest_scale * Vector3(1.2, 0.85, 1.0)

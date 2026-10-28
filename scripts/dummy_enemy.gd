@@ -1,9 +1,14 @@
+class_name GangMember
 extends Npc
-## Target-practice dummy. Wanders aimlessly until someone hits one of them.
-## The one that got hit fights back, and every dummy not already in a fight
-## joins in against the attacker, until they're down. An unarmed dummy that
-## spots a weapon lying around while fighting goes and grabs it first. Won't
-## walk off ledges by itself, but can be shoved off them, water included.
+## A member of a turf-holding gang: the dummy gang, the Black Panthers, the
+## Yellows. Hangs around their home Territory, attacks rival gangs and the
+## police on sight (the player only during a turf war over their turf), and joins in when a fellow member nearby is attacked
+## (Npc.notice_fight). Every so often their turf sends a few of them raiding a
+## rival's (raid()). While their turf is at war they hold it: they won't
+## chase anyone past its edge. An unarmed member that spots a weapon lying
+## around while fighting goes and grabs it first. Won't walk off ledges by itself, but can
+## be shoved off them, water included. The player attacking one sets off a
+## turf war over that gang's turf.
 
 ## How often to look around for weapons, in seconds. Saves raycasts.
 const WEAPON_SCAN_INTERVAL := 0.25
@@ -24,6 +29,9 @@ const CASH_PICKUP := preload("res://scenes/cash_pickup.tscn")
 ## Also go for weapons while calmly wandering, not just mid-fight.
 @export var grab_weapons_while_calm := false
 
+## The turf they hang around. Null to roam anywhere.
+var home: Territory
+
 var _wander_dir := Vector3.ZERO
 var _state_time_left := 0.0
 ## Scripted walk, like stepping out of a spawn door, that overrides the AI.
@@ -32,6 +40,9 @@ var _walk_out_left := 0.0
 ## The weapon pickup we're heading for, if any.
 var _wanted_pickup: WeaponPickup
 var _weapon_scan_left := 0.0
+## Somewhere on a rival's turf they've been sent to make trouble.
+var _raid_point := Vector3.ZERO
+var _raid_left := 0.0
 
 
 func _ready() -> void:
@@ -40,22 +51,36 @@ func _ready() -> void:
 	died.connect(_on_died)
 
 
-func hit(attacker: Citizen, weapon: Weapon) -> void:
-	super(attacker, weapon)
+func _react_to_hit(attacker: Citizen) -> void:
 	if attacker == null or _is_ally(attacker):
 		return
-	# Always turn on whoever hit us. The rest only join if they're free.
+	# Always turn on whoever hit us. The rest of the gang joins in through
+	# notice_fight, if they're free.
 	if not is_down:
 		start_fighting(attacker)
-		_wander_dir = Vector3.ZERO
-	get_tree().call_group("enemies", "provoke", attacker)
-	get_tree().call_group("spawn_doors", "activate", attacker)
+	# Only the player sets off a turf war, and the gang's doors with it.
 	if attacker.is_in_group("player"):
-		get_tree().call_group("turf_wars", "start")
+		get_tree().call_group("turf_wars", "start", faction)
+
+
+## Rival gangs and the police get jumped on sight. The player only does once
+## there's a turf war on over this gang's turf; until then, the player has to
+## start it.
+func _attacks_on_sight(other: Citizen) -> bool:
+	if other.is_in_group("player"):
+		return home != null and home.at_war
+	return super(other)
+
+
+## Head for `point` on rival turf, looking for a fight on the way.
+func raid(point: Vector3, give_up_after := 45.0) -> void:
+	_raid_point = point
+	_raid_left = give_up_after
+	_wander_dir = Vector3.ZERO
 
 
 func _on_died() -> void:
-	get_tree().call_group("turf_wars", "count_kill")
+	get_tree().call_group("turf_wars", "count_kill", faction)
 	if randf() < cash_drop_chance:
 		var cash: CashPickup = CASH_PICKUP.instantiate()
 		cash.amount = randi_range(cash_range.x, cash_range.y)
@@ -63,14 +88,6 @@ func _on_died() -> void:
 		cash.position = parent.to_local(global_position) if parent else global_position
 		# Deferred: this can run inside a physics callback, where adding an Area3D isn't allowed.
 		get_parent().add_child.call_deferred(cash)
-
-
-## Join the fight against `attacker`, unless already busy fighting someone.
-func provoke(attacker: Citizen) -> void:
-	if is_down or _still_fighting():
-		return
-	start_fighting(attacker)
-	_wander_dir = Vector3.ZERO
 
 
 ## Walk straight along `direction` for `duration` seconds before the AI takes over.
@@ -91,18 +108,43 @@ func wants_weapon(_weapon: Weapon) -> bool:
 	return equipped_weapon == null and (target != null or grab_weapons_while_calm)
 
 
-func _is_ally(other: Citizen) -> bool:
-	return other.is_in_group("enemies")
-
-
 func _choose_move_direction(delta: float) -> Vector3:
 	if _walk_out_left > 0.0:
 		_walk_out_left -= delta
 		return _walk_out_dir * minf(wander_speed / move_speed, 1.0)
-	var fighting := _still_fighting()
+	var fighting := _still_fighting() or _scan_for_hostiles(delta)
+	if fighting:
+		_wander_dir = Vector3.ZERO
 	if _windup_left < 0.0 and _update_wanted_pickup(delta):
 		return _fetch_weapon()
-	return _fight(delta) if fighting else _wander(delta)
+	if fighting:
+		return _hold_turf(_fight(delta))
+	if _raid_left > 0.0:
+		return _go_raiding(delta)
+	return _wander(delta)
+
+
+## While home turf is at war, keeps `direction` from carrying us off it, and
+## brings us back if we're already out.
+func _hold_turf(direction: Vector3) -> Vector3:
+	if home == null or not home.at_war:
+		return direction
+	if not home.contains(global_position):
+		return _steer_toward(home.center())
+	if not home.contains(global_position + direction * 0.8):
+		return Vector3.ZERO
+	return direction
+
+
+func _go_raiding(delta: float) -> Vector3:
+	_raid_left -= delta
+	var to_point := _raid_point - global_position
+	to_point.y = 0.0
+	if to_point.length() < 1.5:
+		_raid_left = 0.0
+		return Vector3.ZERO
+	# A purposeful walk, quicker than a stroll.
+	return _steer_toward(_raid_point) * minf(wander_speed * 1.6 / move_speed, 1.0)
 
 
 ## Keeps _wanted_pickup pointing at a weapon we can see and still want.
@@ -147,6 +189,11 @@ func _wander(delta: float) -> Vector3:
 		if _wander_dir == Vector3.ZERO:
 			var angle := randf() * TAU
 			_wander_dir = Vector3(sin(angle), 0.0, cos(angle))
+			# Off home turf (after a raid, say): head back toward the middle of it.
+			if home and not home.contains(global_position):
+				_wander_dir = home.center() - global_position
+				_wander_dir.y = 0.0
+				_wander_dir = _wander_dir.normalized()
 			_state_time_left = randf_range(walk_time_range.x, walk_time_range.y)
 		else:
 			_stop_wandering()
@@ -157,6 +204,8 @@ func _wander(delta: float) -> Vector3:
 				request_jump()  # try to climb out
 		elif is_on_wall() or _clip_at_ledges(_wander_dir, max_safe_drop) != _wander_dir:
 			_stop_wandering()
+		elif home and home.contains(global_position) and not home.contains(global_position + _wander_dir * 0.8):
+			_stop_wandering()  # the edge of home turf
 	# Wandering is a stroll, slower than the chase speed in move_speed.
 	return _wander_dir * minf(wander_speed / move_speed, 1.0)
 

@@ -49,7 +49,6 @@ var _hidden_collision_layer := 0
 
 func _ready() -> void:
 	super()
-	add_to_group("neighbors")
 	_home = global_position
 	facing = start_facing
 	_talk.interacted.connect(_on_talk)
@@ -63,8 +62,7 @@ func is_allied() -> bool:
 	return WorldState.reputation_with(npc_id) >= ally_reputation
 
 
-func hit(attacker: Citizen, weapon: Weapon) -> void:
-	super(attacker, weapon)
+func _react_to_hit(attacker: Citizen) -> void:
 	if attacker == null or is_down:
 		return
 	if attacker.is_in_group("player"):
@@ -89,15 +87,18 @@ func notice_fight(attacker: Citizen, victim: Citizen) -> void:
 			enemy = victim
 		elif _on_players_side(victim):
 			enemy = attacker
-		if enemy and enemy.is_in_group("enemies") and not enemy.is_down:
+		if enemy and not enemy.is_down and not _is_ally(enemy):
 			start_fighting(enemy)
 			return
 	_flee(victim.global_position)
 
 
-## On the player's side once allied: they don't hit the player or other neighbors.
+## Friendly factions are allies as usual. Once allied with the player, so are
+## the player and the other neighbors.
 func _is_ally(other: Citizen) -> bool:
-	return is_allied() and (other.is_in_group("player") or other is Neighbor)
+	if is_allied() and (other.is_in_group("player") or other is Neighbor):
+		return true
+	return super(other)
 
 
 ## The player, or a neighbor who's allied with them.
@@ -138,9 +139,11 @@ func _choose_move_direction(delta: float) -> Vector3:
 func _find_enemy_fighting_us() -> Citizen:
 	var best: Citizen = null
 	var best_distance := notice_range
-	for enemy: Npc in get_tree().get_nodes_in_group("enemies"):
+	for enemy: Npc in get_tree().get_nodes_in_group("npcs"):
 		var their_target := enemy.target
 		if their_target == null or not is_instance_valid(their_target) or not _on_players_side(their_target):
+			continue
+		if enemy == self or _on_players_side(enemy) or _is_ally(enemy):
 			continue
 		var distance := global_position.distance_to(enemy.global_position)
 		if distance < best_distance and not enemy.is_down:
@@ -155,7 +158,7 @@ func hide_inside(door: SafeDoor) -> void:
 	stop_fighting()
 	_flee_left = 0.0
 	_hidden_groups.clear()
-	for group: StringName in ["citizens", "neighbors"]:
+	for group: StringName in ["citizens", "npcs", faction]:
 		if is_in_group(group):
 			_hidden_groups.append(group)
 			remove_from_group(group)
@@ -198,20 +201,8 @@ func _flee(from: Vector3) -> void:
 	stop_fighting()
 
 
-## Straight away from the fight, swerving around drops and the water.
 func _flee_direction() -> Vector3:
-	var away := global_position - _flee_from
-	away.y = 0.0
-	if away.length() < 0.01:
-		away = Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0))
-	away = away.normalized()
-	if is_swimming:
-		return away
-	for turn in [0.0, PI / 4.0, -PI / 4.0, PI / 2.0, -PI / 2.0, PI * 0.75, -PI * 0.75]:
-		var direction := _clip_at_ledges(away.rotated(Vector3.UP, turn), max_safe_drop)
-		if direction.length() > 0.5:
-			return direction.normalized()
-	return Vector3.ZERO
+	return _direction_away_from(_flee_from)
 
 
 ## The conversation. Each neighbor overrides this.

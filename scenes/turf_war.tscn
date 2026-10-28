@@ -90,3 +90,21 @@ theme_override_font_sizes/font_size = 56
 text = "This turf is now ours!"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="ReturnWarning" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 124.0
+offset_right = 300.0
+offset_bottom = 164.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 0.55, 0.2, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 28
+text = "Get back to the turf war!  10"
+horizontal_alignment = 1

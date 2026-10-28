@@ -4,8 +4,6 @@
 [ext_resource type="Script" uid="uid://b430debv0718q" path="res://scripts/city_grid.gd" id="2_grid"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3_player"]
 [ext_resource type="PackedScene" path="res://scenes/camera_rig.tscn" id="4_camera"]
-[ext_resource type="PackedScene" path="res://scenes/dummy_enemy.tscn" id="5_dummy"]
-[ext_resource type="Script" uid="uid://4wn5lcvr4qng" path="res://scripts/hud.gd" id="6_hud"]
 [ext_resource type="PackedScene" path="res://scenes/water.tscn" id="7_water"]
 [ext_resource type="PackedScene" path="res://scenes/weapon_pickup.tscn" id="8_pickup"]
 [ext_resource type="Resource" path="res://weapons/baseball_bat.tres" id="9_bat"]
@@ -13,12 +11,23 @@
 [ext_resource type="Resource" path="res://weapons/knife.tres" id="11_knife"]
 [ext_resource type="Resource" path="res://weapons/brass_knuckles.tres" id="12_brass"]
 [ext_resource type="Script" path="res://scripts/day_night.gd" id="13_day_night"]
-[ext_resource type="Script" path="res://scripts/clock_label.gd" id="14_clock"]
 [ext_resource type="PackedScene" path="res://scenes/street_lamp.tscn" id="15_lamp"]
 [ext_resource type="PackedScene" path="res://scenes/entrance_door.tscn" id="16_entrance"]
 [ext_resource type="PackedScene" path="res://scenes/npcs/rap_dawg.tscn" id="17_rap_dawg"]
 [ext_resource type="PackedScene" path="res://scenes/safe_door.tscn" id="18_safe_door"]
 [ext_resource type="PackedScene" path="res://scenes/turf_war.tscn" id="19_turf_war"]
+[ext_resource type="Resource" path="res://weapons/pistol.tres" id="20_pistol"]
+[ext_resource type="Script" path="res://scripts/pedestrian_spawner.gd" id="21_pedestrians"]
+[ext_resource type="PackedScene" path="res://scenes/npcs/cop.tscn" id="22_cop"]
+[ext_resource type="Resource" path="res://weapons/nightstick.tres" id="23_nightstick"]
+[ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="24_hud"]
+[ext_resource type="PackedScene" path="res://scenes/minimap.tscn" id="25_minimap"]
+[ext_resource type="Script" path="res://scripts/map_blip.gd" id="26_blip"]
+[ext_resource type="Script" path="res://scripts/territory.gd" id="27_territory"]
+[ext_resource type="PackedScene" path="res://scenes/npcs/agent.tscn" id="28_agent"]
+[ext_resource type="PackedScene" path="res://scenes/npcs/homeless.tscn" id="29_homeless"]
+[ext_resource type="Texture2D" path="res://art/homeless_1_8dir.png" id="30_homeless1"]
+[ext_resource type="Texture2D" path="res://art/homeless_2_8dir.png" id="31_homeless2"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.25, 0.2, 0.42, 1)
@@ -64,20 +73,11 @@ script = ExtResource("2_grid")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.15, 0)
 
 [node name="Player" parent="." unique_id=2016112685 node_paths=PackedStringArray("camera_rig") instance=ExtResource("3_player")]
+position = Vector3(8, 0, -1.5)
 camera_rig = NodePath("../CameraRig")
 
 [node name="CameraRig" parent="." unique_id=77332290 node_paths=PackedStringArray("target") instance=ExtResource("4_camera")]
 target = NodePath("../Player")
-
-[node name="Dummy1" parent="." unique_id=362074729 instance=ExtResource("5_dummy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0, 2.5)
-
-[node name="Dummy2" parent="." unique_id=839652651 instance=ExtResource("5_dummy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 0, 4.5)
-starting_weapon = ExtResource("9_bat")
-
-[node name="Dummy3" parent="." unique_id=1962062281 instance=ExtResource("5_dummy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 0, 0.5)
 
 [node name="BaseballBat" parent="." instance=ExtResource("8_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, -1)
@@ -92,35 +92,35 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 3)
 weapon = ExtResource("12_brass")
 
 [node name="LampNorth1" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-10.5, 0, -2.2)
+position = Vector3(-10.5, 0, -1.92)
 
 [node name="LampNorth2" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-5.5, 0, -2.2)
+position = Vector3(-5.5, 0, -1.92)
 
 [node name="LampNorth3" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(2.5, 0, -2.2)
+position = Vector3(2.5, 0, -1.92)
 
 [node name="LampNorth4" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(9.5, 0, -2.2)
+position = Vector3(9.5, 0, -1.92)
 
 [node name="LampSouth1" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-6.5, 0, 1.2)
+position = Vector3(-6.5, 0, 0.92)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="LampSouth2" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(3.5, 0, 1.2)
+position = Vector3(3.5, 0, 0.92)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="LampSouth3" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(10.5, 0, 1.2)
+position = Vector3(10.5, 0, 0.92)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="LampSideWest" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-3.2, 0, 5.5)
+position = Vector3(-2.92, 0, 5.5)
 rotation = Vector3(0, 1.5708, 0)
 
 [node name="LampSideEast" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(0.2, 0, 6.5)
+position = Vector3(-0.08, 0, 6.5)
 rotation = Vector3(0, -1.5708, 0)
 
 [node name="GrowHouseDoor" parent="." instance=ExtResource("16_entrance")]
@@ -154,145 +154,191 @@ position = Vector3(28.5, 0, -3)
 [node name="SpawnDoorSouthWest" parent="." instance=ExtResource("10_door")]
 position = Vector3(-32.5, 0, 15)
 
-[node name="Dummy4" parent="." instance=ExtResource("5_dummy")]
-position = Vector3(-20.0, 0, -0.5)
-
-[node name="Dummy5" parent="." instance=ExtResource("5_dummy")]
-position = Vector3(20.0, 0, 0.5)
-
-[node name="Dummy6" parent="." instance=ExtResource("5_dummy")]
-position = Vector3(-30.0, 0, -18.5)
-
-[node name="Dummy7" parent="." instance=ExtResource("5_dummy")]
-position = Vector3(30.0, 0, 17.5)
-
 [node name="Lamp_1" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-34.5, 0, -2.2)
+position = Vector3(-34.5, 0, -1.92)
 
 [node name="Lamp_2" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-29.5, 0, -2.2)
+position = Vector3(-29.5, 0, -1.92)
 
 [node name="Lamp_3" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-15.5, 0, -2.2)
+position = Vector3(-15.5, 0, -1.92)
 
 [node name="Lamp_4" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(17.5, 0, -2.2)
+position = Vector3(17.5, 0, -1.92)
 
 [node name="Lamp_5" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(25.5, 0, -2.2)
+position = Vector3(25.5, 0, -1.92)
 
 [node name="Lamp_6" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(33.5, 0, -2.2)
+position = Vector3(33.5, 0, -1.92)
 
 [node name="Lamp_7" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-33.5, 0, 1.2)
+position = Vector3(-33.5, 0, 0.92)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_8" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-29.5, 0, 1.2)
+position = Vector3(-29.5, 0, 0.92)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_9" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-17.5, 0, 1.2)
+position = Vector3(-17.5, 0, 0.92)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_10" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(17.5, 0, 1.2)
+position = Vector3(17.5, 0, 0.92)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_11" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(25.5, 0, 1.2)
+position = Vector3(25.5, 0, 0.92)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_12" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(33.5, 0, 1.2)
+position = Vector3(33.5, 0, 0.92)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_13" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-29.5, 0, -20.2)
+position = Vector3(-29.5, 0, -19.92)
 
 [node name="Lamp_14" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-29.5, 0, -16.8)
+position = Vector3(-29.5, 0, -17.08)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_15" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-29.5, 0, 15.8)
+position = Vector3(-29.5, 0, 16.08)
 
 [node name="Lamp_16" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-29.5, 0, 19.2)
+position = Vector3(-29.5, 0, 18.92)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_17" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-15.5, 0, -20.2)
+position = Vector3(-15.5, 0, -19.92)
 
 [node name="Lamp_18" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-15.5, 0, -16.8)
+position = Vector3(-15.5, 0, -17.08)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_19" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-15.5, 0, 15.8)
+position = Vector3(-15.5, 0, 16.08)
 
 [node name="Lamp_20" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-15.5, 0, 19.2)
+position = Vector3(-15.5, 0, 18.92)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_21" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-5.5, 0, -20.2)
+position = Vector3(-5.5, 0, -19.92)
 
 [node name="Lamp_22" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-5.5, 0, -16.8)
+position = Vector3(-5.5, 0, -17.08)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_23" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-5.5, 0, 15.8)
+position = Vector3(-5.5, 0, 16.08)
 
 [node name="Lamp_24" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(-5.5, 0, 19.2)
+position = Vector3(-5.5, 0, 18.92)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_25" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(5.5, 0, -20.2)
+position = Vector3(5.5, 0, -19.92)
 
 [node name="Lamp_26" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(5.5, 0, -16.8)
+position = Vector3(5.5, 0, -17.08)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_27" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(5.5, 0, 15.8)
+position = Vector3(5.5, 0, 16.08)
 
 [node name="Lamp_28" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(5.5, 0, 19.2)
+position = Vector3(5.5, 0, 18.92)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_29" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(17.5, 0, -20.2)
+position = Vector3(17.5, 0, -19.92)
 
 [node name="Lamp_30" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(17.5, 0, -16.8)
+position = Vector3(17.5, 0, -17.08)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_31" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(17.5, 0, 15.8)
+position = Vector3(17.5, 0, 16.08)
 
 [node name="Lamp_32" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(17.5, 0, 19.2)
+position = Vector3(17.5, 0, 18.92)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_33" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(29.5, 0, -20.2)
+position = Vector3(29.5, 0, -19.92)
 
 [node name="Lamp_34" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(29.5, 0, -16.8)
+position = Vector3(29.5, 0, -17.08)
 rotation = Vector3(0, 3.14159, 0)
 
 [node name="Lamp_35" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(29.5, 0, 15.8)
+position = Vector3(29.5, 0, 16.08)
 
 [node name="Lamp_36" parent="." instance=ExtResource("15_lamp")]
-position = Vector3(29.5, 0, 19.2)
+position = Vector3(29.5, 0, 18.92)
 rotation = Vector3(0, 3.14159, 0)
 
+[node name="Pistol" parent="." instance=ExtResource("8_pickup")]
+position = Vector3(-9, 0, 0.5)
+weapon = ExtResource("20_pistol")
+
+[node name="Pedestrians" type="Node3D" parent="."]
+script = ExtResource("21_pedestrians")
+
+[node name="Homeless" type="Node3D" parent="."]
+script = ExtResource("21_pedestrians")
+scene = ExtResource("29_homeless")
+count = 4
+looks = Array[Texture2D]([ExtResource("30_homeless1"), ExtResource("31_homeless2")])
+
+[node name="CIA" type="Node3D" parent="."]
+script = ExtResource("21_pedestrians")
+scene = ExtResource("28_agent")
+count = 4
+looks = Array[Texture2D]([])
+group_size = 2
+
+[node name="Cops" type="Node3D" parent="."]
+script = ExtResource("21_pedestrians")
+scene = ExtResource("22_cop")
+count = 4
+looks = Array[Texture2D]([])
+weapons = [ExtResource("23_nightstick"), ExtResource("23_nightstick"), ExtResource("20_pistol")]
+min_spawn_distance = 12.0
+
 [node name="TurfWar" parent="." instance=ExtResource("19_turf_war")]
+
+[node name="TurfNorthwest" type="Node3D" parent="."]
+script = ExtResource("27_territory")
+id = "northwest"
+starting_owner = &"dummy_gang"
+area = Rect2(-36, -24, 34.5, 26)
+
+[node name="TurfNortheast" type="Node3D" parent="."]
+script = ExtResource("27_territory")
+id = "northeast"
+starting_owner = &"player"
+area = Rect2(-1.5, -24, 37.5, 26)
+
+[node name="TurfSouthwest" type="Node3D" parent="."]
+script = ExtResource("27_territory")
+id = "southwest"
+starting_owner = &"panthers"
+area = Rect2(-36, 2, 34.5, 22)
+
+[node name="TurfSoutheast" type="Node3D" parent="."]
+script = ExtResource("27_territory")
+id = "southeast"
+starting_owner = &"yellows"
+area = Rect2(-1.5, 2, 37.5, 22)
+
+[node name="SpawnDoorPanthers" parent="." instance=ExtResource("10_door")]
+position = Vector3(-18.5, 0, 15)
+
+[node name="SpawnDoorYellows" parent="." instance=ExtResource("10_door")]
+position = Vector3(9.5, 0, 8)
 
 [node name="SpawnDoorWest" parent="." instance=ExtResource("10_door")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -3)
@@ -300,27 +346,18 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -3)
 [node name="SpawnDoorEast" parent="." instance=ExtResource("10_door")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, -3)
 
-[node name="HUD" type="CanvasLayer" parent="." unique_id=1092382727]
+[node name="HUD" parent="." instance=ExtResource("24_hud")]
 
-[node name="Help" type="Label" parent="HUD" unique_id=1501232825 node_paths=PackedStringArray("player")]
-offset_left = 12.0
-offset_top = 8.0
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
-script = ExtResource("6_hud")
-player = NodePath("../../Player")
+[node name="Minimap" parent="." instance=ExtResource("25_minimap")]
 
-[node name="Clock" type="Label" parent="HUD"]
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -260.0
-offset_top = 8.0
-offset_right = -12.0
-offset_bottom = 66.0
-grow_horizontal = 0
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 6
-theme_override_font_sizes/font_size = 22
-horizontal_alignment = 2
-script = ExtResource("14_clock")
+[node name="HomeBlip" type="Marker3D" parent="."]
+position = Vector3(11, 0, -2.5)
+script = ExtResource("26_blip")
+label = "H"
+color = Color(0.45, 0.95, 0.45, 1)
+
+[node name="ShopBlip" type="Marker3D" parent="."]
+position = Vector3(14.5, 0, -2.5)
+script = ExtResource("26_blip")
+label = "$"
+color = Color(1, 0.85, 0.3, 1)

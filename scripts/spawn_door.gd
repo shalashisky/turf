@@ -1,8 +1,9 @@
 extends Node3D
-## A door on a building wall that sends out enemies once a fight starts.
-## Attacking any enemy sets off every door in the "spawn_doors" group. Each one
-## then swings open, lets an enemy walk out, and shuts again, every
-## spawn_interval seconds, until the attacker is dead.
+## A gang's door on a building wall, sending out reinforcements in a turf war.
+## It belongs to whichever gang holds the Territory it stands in, and sends out
+## their members (Factions.MEMBER_SCENES). When TurfWar activates it, it swings
+## open, lets a member walk out, and shuts again, every spawn_interval seconds,
+## until the attacker is down. Doors on the player's turf stay shut.
 ##
 ## The door faces +Z. Place it flush against a wall with its back to the building.
 
@@ -10,7 +11,6 @@ extends Node3D
 const EXIT_DISTANCE := 0.35
 const WALK_OUT_TIME := 0.6
 
-@export var enemy_scene: PackedScene = preload("res://scenes/dummy_enemy.tscn")
 @export var spawn_interval := 5.0
 ## Random extra time added to each wait, so doors don't open in sync.
 @export var spawn_jitter := 1.5
@@ -21,10 +21,11 @@ const WALK_OUT_TIME := 0.6
 ## Chance that each enemy comes out armed, with a random pick from weapon_pool.
 ## Everyone else uses their fists.
 @export_range(0.0, 1.0) var armed_chance := 0.5
-@export var weapon_pool: Array[Weapon] = [
+@export var weapon_pool: Array = [
 	preload("res://weapons/baseball_bat.tres"),
 	preload("res://weapons/knife.tres"),
 	preload("res://weapons/brass_knuckles.tres"),
+	preload("res://weapons/pistol.tres"),
 ]
 @export var open_angle_degrees := 100.0
 ## How long the door stays open while the enemy walks out.
@@ -34,6 +35,9 @@ const WALK_OUT_TIME := 0.6
 var target: Citizen
 ## False once the turf's been taken: the door never opens again.
 var enabled := true
+## The turf it stands in, and the gang whose door it is.
+var territory: Territory
+var faction := &""
 
 var _spawn_timer := 0.0
 var _alive: Array[Citizen] = []
@@ -45,6 +49,22 @@ var _busy := false
 
 func _ready() -> void:
 	add_to_group("spawn_doors")
+	_set_alarm_lamp(false)
+	_find_territory.call_deferred()
+
+
+func _find_territory() -> void:
+	for turf: Territory in get_tree().get_nodes_in_group("territories"):
+		if turf.contains(global_position):
+			territory = turf
+	faction = territory.owner_faction() if territory else &""
+	if not Factions.MEMBER_SCENES.has(faction):
+		shut_for_good()
+
+
+## The war's over without the turf changing hands: back to quiet.
+func stand_down() -> void:
+	target = null
 	_set_alarm_lamp(false)
 
 
@@ -98,7 +118,8 @@ func _spawn_enemy() -> void:
 	if target == null:
 		return  # the fight ended while the door was opening
 	var forward := global_basis.z.normalized()
-	var enemy: Citizen = enemy_scene.instantiate()
+	var enemy: GangMember = load(Factions.MEMBER_SCENES[faction]).instantiate()
+	enemy.home = territory
 	if not weapon_pool.is_empty() and randf() < armed_chance:
 		enemy.starting_weapon = weapon_pool.pick_random()
 	# Place before adding, so the enemy's spawn point is the doorway.
@@ -109,7 +130,7 @@ func _spawn_enemy() -> void:
 	enemy.reset_physics_interpolation()
 	enemy.facing = forward
 	enemy.walk_out(forward, WALK_OUT_TIME)
-	enemy.provoke(target)
+	enemy.start_fighting(target)
 	_alive.append(enemy)
 
 

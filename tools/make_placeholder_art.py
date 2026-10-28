@@ -4,10 +4,18 @@ before real art exists. Run from the project root: python3 tools/make_placeholde
 player_8dir.png: 4 columns x 8 rows of 32x32 frames.
   Rows (facing, clockwise from "toward the camera"): s, se, e, ne, n, nw, w, sw
   Columns: 0 = idle, 1-3 = walk cycle
-dummy_8dir.png: same layout as the player sheet, without the facing arrow.
+dummy_8dir.png: same layout as the player sheet, without the facing arrow. The dummy gang, in blue.
+panther_8dir.png: same layout, a Black Panther: a black cat in a leather jacket.
+yellow_8dir.png: same layout, a member of the Yellows.
+cia_8dir.png: same layout, a CIA agent in a black suit and sunglasses.
+homeless_1_8dir.png, homeless_2_8dir.png: same layout, long beards and beanies.
 rap_dawg_8dir.png: same layout, a dog in a beanie, for the Rap Dawg neighbor.
 clerk_8dir.png: same layout, a store clerk in a green apron.
+pedestrian_1_8dir.png .. pedestrian_3_8dir.png: same layout, passers-by in different outfits.
 cash.png: 14x8 dollar bill, for cash drops.
+pistol.png: 14x9 pistol pointing right, grip at the left.
+cop_8dir.png: same layout as the player sheet, a beat cop in uniform and cap.
+nightstick.png: 20x6 police baton pointing right, handle at the left.
 shadow_blob.png: soft round shadow projected under the player.
 baseball_bat.png: 24x8 bat pointing right, grip at the left edge.
 pickup_arrow.png: 11x10 green arrow pointing down, shown above pickups.
@@ -53,14 +61,64 @@ CLERK = {
     "skin": (190, 140, 100, 255),
     "hair": (150, 150, 150, 255),
 }
+PEDESTRIANS = [
+    {"jacket": (210, 170, 60, 255), "stripe": (240, 225, 170, 255), "pants": (60, 60, 70, 255),
+     "shoes": (235, 235, 235, 255), "skin": (120, 80, 50, 255), "hair": (30, 25, 25, 255)},
+    {"jacket": (90, 160, 150, 255), "stripe": (90, 160, 150, 255), "pants": (130, 110, 80, 255),
+     "shoes": (90, 60, 40, 255), "skin": (230, 190, 160, 255), "hair": (200, 160, 60, 255)},
+    {"jacket": (160, 60, 140, 255), "stripe": (235, 235, 235, 255), "pants": (40, 40, 60, 255),
+     "shoes": (240, 240, 240, 255), "skin": (180, 130, 90, 255), "hair": (90, 50, 30, 255)},
+]
+COP = {
+    "jacket": (35, 50, 115, 255),
+    "stripe": (225, 200, 80, 255),  # gold trim
+    "pants": (25, 32, 75, 255),
+    "shoes": (20, 20, 25, 255),
+    "skin": (160, 110, 75, 255),
+    "hair": (30, 40, 95, 255),  # the cap
+}
 DUMMY = {
-    "jacket": (180, 150, 220, 255),
-    "stripe": (230, 230, 230, 255),
-    "pants": (90, 90, 100, 255),
+    "jacket": (60, 110, 210, 255),
+    "stripe": (220, 230, 255, 255),
+    "pants": (40, 50, 90, 255),
     "shoes": (40, 40, 40, 255),
     "skin": (200, 160, 130, 255),
     "hair": (60, 40, 30, 255),
 }
+PANTHER = {
+    "jacket": (30, 28, 32, 255),  # leather
+    "stripe": (150, 150, 160, 255),
+    "pants": (25, 25, 30, 255),
+    "shoes": (60, 50, 45, 255),
+    "skin": (42, 40, 48, 255),  # black fur
+    "hair": (42, 40, 48, 255),
+    "cat": True,
+}
+YELLOW = {
+    "jacket": (240, 200, 40, 255),
+    "stripe": (40, 40, 40, 255),
+    "pants": (40, 40, 40, 255),
+    "shoes": (240, 200, 40, 255),
+    "skin": (180, 130, 90, 255),
+    "hair": (25, 20, 20, 255),
+}
+CIA = {
+    "jacket": (28, 28, 34, 255),  # suit
+    "stripe": (28, 28, 34, 255),
+    "pants": (28, 28, 34, 255),
+    "shoes": (15, 15, 18, 255),
+    "skin": (210, 170, 140, 255),
+    "hair": (40, 30, 25, 255),
+    "sunglasses": True,
+}
+HOMELESS = [
+    {"jacket": (110, 85, 60, 255), "stripe": (90, 70, 50, 255), "pants": (70, 70, 60, 255),
+     "shoes": (50, 40, 35, 255), "skin": (190, 145, 110, 255), "hair": (120, 110, 100, 255),
+     "beard": (150, 140, 130, 255), "beanie": (150, 50, 45, 255)},
+    {"jacket": (75, 90, 70, 255), "stripe": (60, 72, 55, 255), "pants": (90, 80, 65, 255),
+     "shoes": (45, 40, 35, 255), "skin": (140, 95, 65, 255), "hair": (60, 50, 45, 255),
+     "beard": (90, 80, 72, 255), "beanie": (60, 90, 130, 255)},
+]
 
 
 def new_image(width, height):
@@ -97,6 +155,10 @@ def draw_character(palette, facing, step, arrow):
         draw_dog_head(frame, palette, dx, dy, bob)
         add_outline(frame)
         return frame
+    if palette.get("cat"):
+        draw_cat_head(frame, palette, dx, dy, bob)
+        add_outline(frame)
+        return frame
 
     # Head: hair covers the back of the head when facing away
     rect(frame, 12, 5 - bob, 19, 13 - bob, palette["skin"])
@@ -108,9 +170,19 @@ def draw_character(palette, facing, step, arrow):
             back = 12 if dx > 0 else 19
             rect(frame, back, 4 - bob, back, 10 - bob, palette["hair"])
         eye_shift = dx * 2
-        if dy > 0 or dx == 0:
-            rect(frame, 14 + eye_shift, 9 - bob, 14 + eye_shift, 10 - bob, OUTLINE)
-        rect(frame, 17 + eye_shift, 9 - bob, 17 + eye_shift, 10 - bob, OUTLINE)
+        if palette.get("sunglasses"):
+            rect(frame, 13 + eye_shift, 9 - bob, 18 + eye_shift, 9 - bob, OUTLINE)
+        else:
+            if dy > 0 or dx == 0:
+                rect(frame, 14 + eye_shift, 9 - bob, 14 + eye_shift, 10 - bob, OUTLINE)
+            rect(frame, 17 + eye_shift, 9 - bob, 17 + eye_shift, 10 - bob, OUTLINE)
+        if palette.get("beard"):
+            # Long and scraggly, hanging down over the coat.
+            rect(frame, 13 + dx, 11 - bob, 18 + dx, 15 - bob, palette["beard"])
+            rect(frame, 14 + dx, 16 - bob, 17 + dx, 17 - bob, palette["beard"])
+    if palette.get("beanie"):
+        rect(frame, 11, 2 - bob, 20, 6 - bob, palette["beanie"])
+        rect(frame, 11, 6 - bob, 20, 6 - bob, tuple(max(c - 40, 0) for c in palette["beanie"][:3]) + (255,))
 
     add_outline(frame)
 
@@ -124,6 +196,27 @@ def draw_character(palette, facing, step, arrow):
         tip_x, tip_y = int(round(cx + ux * 10)), int(round(cy + uy * 10))
         rect(frame, tip_x - 1, tip_y - 1, tip_x + 1, tip_y + 1, ARROW)
     return frame
+
+
+def draw_cat_head(frame, palette, dx, dy, bob):
+    fur = palette["skin"]
+    eyes = (235, 205, 60, 255)
+    rect(frame, 12, 5 - bob, 19, 13 - bob, fur)
+    # Pointed ears.
+    for x0, x1 in ((12, 13), (18, 19)):
+        rect(frame, x0, 3 - bob, x1, 4 - bob, fur)
+    rect(frame, 12, 2 - bob, 12, 2 - bob, fur)
+    rect(frame, 19, 2 - bob, 19, 2 - bob, fur)
+    if dy >= 0:
+        eye_shift = dx * 2
+        if dy > 0 or dx == 0:
+            rect(frame, 14 + eye_shift, 8 - bob, 14 + eye_shift, 9 - bob, eyes)
+        rect(frame, 17 + eye_shift, 8 - bob, 17 + eye_shift, 9 - bob, eyes)
+        nose = 15 + dx * 2
+        rect(frame, nose, 11 - bob, nose + 1, 11 - bob, (210, 120, 140, 255))
+        # Whiskers.
+        rect(frame, 11, 11 - bob, 12, 11 - bob, (150, 150, 155, 255))
+        rect(frame, 19, 11 - bob, 20, 11 - bob, (150, 150, 155, 255))
 
 
 def draw_dog_head(frame, palette, dx, dy, bob):
@@ -196,9 +289,19 @@ def main():
 
     write_png(art / "player_8dir.png", draw_sheet(PLAYER, arrow=True))
     write_png(art / "dummy_8dir.png", draw_sheet(DUMMY, arrow=False))
+    write_png(art / "panther_8dir.png", draw_sheet(PANTHER, arrow=False))
+    write_png(art / "yellow_8dir.png", draw_sheet(YELLOW, arrow=False))
+    write_png(art / "cia_8dir.png", draw_sheet(CIA, arrow=False))
+    for i, palette in enumerate(HOMELESS):
+        write_png(art / ("homeless_%d_8dir.png" % (i + 1)), draw_sheet(palette, arrow=False))
     write_png(art / "rap_dawg_8dir.png", draw_sheet(RAP_DAWG, arrow=False))
     write_png(art / "clerk_8dir.png", draw_sheet(CLERK, arrow=False))
+    for i, palette in enumerate(PEDESTRIANS):
+        write_png(art / ("pedestrian_%d_8dir.png" % (i + 1)), draw_sheet(palette, arrow=False))
     write_png(art / "cash.png", draw_cash())
+    write_png(art / "pistol.png", draw_pistol())
+    write_png(art / "nightstick.png", draw_nightstick())
+    write_png(art / "cop_8dir.png", draw_sheet(COP, arrow=False))
     write_png(art / "shadow_blob.png", draw_blob(32))
     write_png(art / "baseball_bat.png", draw_bat())
     write_png(art / "pickup_arrow.png", draw_pickup_arrow())
@@ -311,6 +414,30 @@ def draw_weed_plant(stage):
                 rect(image, bx, by - 3, bx, by - 3, ripe if stage == 4 else bud)
                 for hx, hy in ((bx - 1, by - 1), (bx + 1, by + 1), (bx, by - 3)):
                     rect(image, hx, hy, hx, hy, orange if stage == 4 else hair)
+    add_outline(image)
+    return image
+
+
+def draw_pistol():
+    image = new_image(14, 9)
+    metal = (70, 72, 80, 255)
+    light = (120, 124, 135, 255)
+    grip = (60, 40, 30, 255)
+    rect(image, 2, 2, 12, 4, metal)  # slide and barrel
+    rect(image, 3, 2, 11, 2, light)
+    rect(image, 2, 5, 5, 7, grip)  # grip
+    rect(image, 6, 5, 7, 5, metal)  # trigger guard
+    add_outline(image)
+    return image
+
+
+def draw_nightstick():
+    image = new_image(20, 6)
+    black = (35, 35, 40, 255)
+    shine = (80, 80, 90, 255)
+    rect(image, 1, 2, 17, 3, black)
+    rect(image, 2, 2, 16, 2, shine)
+    rect(image, 5, 1, 5, 4, black)  # side handle
     add_outline(image)
     return image
 

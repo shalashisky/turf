@@ -1,14 +1,13 @@
-[gd_scene load_steps=26 format=3]
+[gd_scene format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/camera_rig.tscn" id="2_camera"]
-[ext_resource type="Script" path="res://scripts/hud.gd" id="3_hud"]
-[ext_resource type="Script" path="res://scripts/clock_label.gd" id="4_clock"]
 [ext_resource type="PackedScene" path="res://scenes/entrance_door.tscn" id="5_door"]
 [ext_resource type="Shader" path="res://shaders/occlusion_cutout.gdshader" id="6_cutout"]
 [ext_resource type="Script" path="res://scripts/shop_clerk.gd" id="7_clerk"]
 [ext_resource type="Texture2D" path="res://art/clerk_8dir.png" id="8_clerk_sheet"]
 [ext_resource type="Script" path="res://scripts/interactable.gd" id="9_interactable"]
+[ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="10_hud"]
 
 [sub_resource type="Environment" id="env"]
 background_mode = 1
@@ -249,27 +248,4 @@ camera_rig = NodePath("../CameraRig")
 [node name="CameraRig" parent="." node_paths=PackedStringArray("target") instance=ExtResource("2_camera")]
 target = NodePath("../Player")
 
-[node name="HUD" type="CanvasLayer" parent="."]
-
-[node name="Help" type="Label" parent="HUD" node_paths=PackedStringArray("player")]
-offset_left = 12.0
-offset_top = 8.0
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
-script = ExtResource("3_hud")
-player = NodePath("../../Player")
-
-[node name="Clock" type="Label" parent="HUD"]
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -260.0
-offset_top = 8.0
-offset_right = -12.0
-offset_bottom = 66.0
-grow_horizontal = 0
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 6
-theme_override_font_sizes/font_size = 22
-horizontal_alignment = 2
-script = ExtResource("4_clock")
+[node name="HUD" parent="." instance=ExtResource("10_hud")]

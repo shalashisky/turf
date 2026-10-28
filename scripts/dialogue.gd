@@ -34,7 +34,7 @@ var _closed_at := -INPUT_GRACE_MS
 @onready var _speaker: Label = %Speaker
 @onready var _text: RichTextLabel = %Text
 @onready var _portrait: TextureRect = %Portrait
-@onready var _options: VBoxContainer = %Options
+@onready var _options: GridContainer = %Options
 @onready var _more: Label = %More
 
 
@@ -102,6 +102,8 @@ func _finish_typing() -> void:
 	if _pending_options.is_empty():
 		_more.visible = true
 		return
+	# Long menus go in two columns so they fit in the box.
+	_options.columns = 2 if _pending_options.size() > 3 else 1
 	for i in _pending_options.size():
 		var button := Button.new()
 		button.text = _pending_options[i]

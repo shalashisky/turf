@@ -8,18 +8,18 @@ shader = ExtResource("2_shader")
 
 [sub_resource type="PlaneMesh" id="water_mesh"]
 material = SubResource("water_mat")
-size = Vector2(96, 80)
-subdivide_width = 191
-subdivide_depth = 159
+size = Vector2(150, 110)
+subdivide_width = 224
+subdivide_depth = 164
 
 [sub_resource type="BoxShape3D" id="volume_shape"]
-size = Vector3(96, 6, 80)
+size = Vector3(150, 6, 110)
 
 [sub_resource type="BoxShape3D" id="wall_x"]
-size = Vector3(1, 6, 37)
+size = Vector3(1, 6, 69)
 
 [sub_resource type="BoxShape3D" id="wall_z"]
-size = Vector3(45, 6, 1)
+size = Vector3(93, 6, 1)
 
 [node name="Water" type="Node3D"]
 script = ExtResource("1_script")
@@ -40,17 +40,17 @@ shape = SubResource("volume_shape")
 [node name="Bounds" type="StaticBody3D" parent="."]
 
 [node name="East" type="CollisionShape3D" parent="Bounds"]
-position = Vector3(22.5, 0, 0)
+position = Vector3(46.5, 0, 0)
 shape = SubResource("wall_x")
 
 [node name="West" type="CollisionShape3D" parent="Bounds"]
-position = Vector3(-22.5, 0, 0)
+position = Vector3(-46.5, 0, 0)
 shape = SubResource("wall_x")
 
 [node name="North" type="CollisionShape3D" parent="Bounds"]
-position = Vector3(0, 0, -18.5)
+position = Vector3(0, 0, -34.5)
 shape = SubResource("wall_z")
 
 [node name="South" type="CollisionShape3D" parent="Bounds"]
-position = Vector3(0, 0, 18.5)
+position = Vector3(0, 0, 34.5)
 shape = SubResource("wall_z")

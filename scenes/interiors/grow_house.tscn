@@ -158,13 +158,12 @@ omni_range = 5.0
 position = Vector3(0, 0, -4.0)
 target_scene = "res://scenes/main.tscn"
 target_entrance = "GrowHouse"
-prompt = "Leave"
 
 [node name="Street" type="Marker3D" parent="." groups=["entrances"]]
-position = Vector3(0, 0, -3.0)
+position = Vector3(0, 0, -2.6)
 
 [node name="Player" parent="." node_paths=PackedStringArray("camera_rig") instance=ExtResource("1_player")]
-position = Vector3(0, 0, -3.0)
+position = Vector3(0, 0, -2.6)
 camera_rig = NodePath("../CameraRig")
 
 [node name="CameraRig" parent="." node_paths=PackedStringArray("target") instance=ExtResource("2_camera")]

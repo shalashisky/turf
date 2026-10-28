@@ -44,7 +44,8 @@ func _refresh() -> void:
 
 	match state:
 		WorldState.TrayState.EMPTY:
-			_use.prompt = "Plant seed"
+			var seeds := WorldState.item_count("weed_seed")
+			_use.prompt = "Plant seed  (%d left)" % seeds if seeds > 0 else "Need weed seeds"
 		WorldState.TrayState.READY:
 			_use.prompt = "Harvest"
 		WorldState.TrayState.GROWING:

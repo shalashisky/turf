@@ -10,8 +10,11 @@ extends CharacterBody3D
 ## "BlobShadow" is optional.
 
 signal died
+signal knocked_out
+signal got_up
 
 const BLOOD_BURST := preload("res://scenes/effects/blood_burst.tscn")
+const BLOCK_SPARK := preload("res://scenes/effects/block_spark.tscn")
 const DUST_PUFF := preload("res://scenes/effects/dust_puff.tscn")
 ## Landing faster than this (m/s) kicks up dust.
 const DUST_FALL_SPEED := 3.0
@@ -77,8 +80,24 @@ const WORLD_LAYER := 1
 @export var corpse_fade_time := 1.0
 ## Come back to life at the spawn point after fading, instead of despawning.
 @export var respawns_after_death := false
+## Essential citizens are never killed. At zero health they're knocked out
+## instead, and get back up after knockout_time.
+@export var essential := false
+@export var knockout_time := 6.0
+## Fraction of max health an essential citizen gets back up with.
+@export_range(0.0, 1.0) var get_up_health := 0.5
 ## Debug readout of health above the head.
 @export var show_health_label := true
+
+@export_group("Blocking")
+## Share of a blocked hit's damage that's stopped.
+@export_range(0.0, 1.0) var block_damage_reduction := 0.8
+## Knockback from a blocked hit, as a fraction of the full shove.
+@export_range(0.0, 1.0) var block_knockback_factor := 0.35
+## Only hits from within this arc in front get blocked.
+@export var block_arc_degrees := 120.0
+## Walking speed is multiplied by this while blocking.
+@export var block_move_factor := 0.45
 
 @export_group("Squash and Stretch")
 ## How fast the sprite springs back to its normal shape.
@@ -92,7 +111,14 @@ var facing := Vector3.FORWARD
 var is_swimming := false
 var equipped_weapon: Weapon
 var health := 0
+## Holding a guard up: slower, can't attack, takes less from hits in front.
+var is_blocking := false
 var is_dead := false
+var is_knocked_out := false
+## Dead or knocked out: can't act, and nobody should be targeting them.
+var is_down: bool:
+	get:
+		return is_dead or is_knocked_out
 
 ## Self-propelled horizontal velocity. Kept apart from shoves so that walking
 ## into a wall or a shove doesn't eat into it.
@@ -143,7 +169,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	var move_dir := Vector3.ZERO if is_dead else _choose_move_direction(delta)
+	var move_dir := Vector3.ZERO if is_down else _choose_move_direction(delta)
 	_update_swimming()
 	_update_walk_velocity(move_dir, delta)
 	_update_vertical_velocity(delta)
@@ -160,7 +186,7 @@ func _physics_process(delta: float) -> void:
 	_push_bodies()
 	_push_velocity = _push_velocity.move_toward(Vector3.ZERO, push_friction * delta)
 	_respawn_if_fallen()
-	if not is_dead:
+	if not is_down:
 		_choose_facing(move_dir, delta)
 	_update_visuals(delta)
 
@@ -236,8 +262,12 @@ func drop_weapon() -> void:
 	get_parent().add_child.call_deferred(pickup)
 
 
+func set_blocking(on: bool) -> void:
+	is_blocking = on and not is_down
+
+
 func can_attack() -> bool:
-	return not is_dead and _attack_cooldown_left <= 0.0
+	return not is_down and not is_blocking and _attack_cooldown_left <= 0.0
 
 
 ## Melee swing in the facing direction with the current weapon. Hits every
@@ -266,35 +296,87 @@ func _is_ally(_other: Citizen) -> bool:
 ## Takes the weapon's damage and gets knocked back away from the attacker,
 ## harder for heavier weapons.
 func hit(attacker: Citizen, weapon: Weapon) -> void:
-	if is_dead:
+	if is_down:
 		return
 	var away := _flat_offset_from(attacker)
 	away = away.normalized() if away.length() > 0.01 else attacker.facing
-	push(away * weapon.knockback)
-	if is_on_floor() or is_swimming:
-		velocity.y = weapon.knockback_lift
-		_knocked_airborne = true
+	var blocked := is_blocking and facing.angle_to(-away) <= deg_to_rad(block_arc_degrees) * 0.5
+	var damage := weapon.damage
+	if blocked:
+		# The guard takes most of it: a shove, a spark, and a little damage.
+		push(away * weapon.knockback * block_knockback_factor)
+		damage = roundi(weapon.damage * (1.0 - block_damage_reduction))
+		_squash(Vector2(1.1, 0.92))
+		_spawn_effect(BLOCK_SPARK, global_position + Vector3.UP * 0.8 - away * 0.35, -away + Vector3.UP * 0.5)
+	else:
+		push(away * weapon.knockback)
+		if is_on_floor() or is_swimming:
+			velocity.y = weapon.knockback_lift
+			_knocked_airborne = true
+		if _flash:
+			_flash.kill()
+		_sprite.modulate = Color(1.0, 0.2, 0.2)
+		_flash = create_tween()
+		_flash.tween_property(_sprite, "modulate", Color.WHITE, 0.3)
+		_squash(Vector2(1.25, 0.8))
+		_spawn_effect(BLOOD_BURST, global_position + Vector3.UP * 0.8, away + Vector3.UP * 0.8)
 
-	if _flash:
-		_flash.kill()
-	_sprite.modulate = Color(1.0, 0.2, 0.2)
-	_flash = create_tween()
-	_flash.tween_property(_sprite, "modulate", Color.WHITE, 0.3)
-	_squash(Vector2(1.25, 0.8))
-	_spawn_effect(BLOOD_BURST, global_position + Vector3.UP * 0.8, away + Vector3.UP * 0.8)
-
-	health = maxi(health - weapon.damage, 0)
+	health = maxi(health - damage, 0)
 	if health == 0:
-		die(away)
+		if essential:
+			knock_out(away)
+		else:
+			die(away)
+	# Let neighbors nearby know there's a fight on.
+	if attacker:
+		get_tree().call_group("neighbors", "notice_fight", attacker, self)
 
 
 ## Topples over sideways, lies there for a bit, then fades out and despawns
 ## (or respawns, if respawns_after_death is set). `fall_direction` is the way
 ## the body was knocked; it decides which side it lands on.
 func die(fall_direction := Vector3.ZERO) -> void:
-	if is_dead:
+	if is_down:
 		return
 	is_dead = true
+	_fall_down(fall_direction)
+	if drops_weapon_on_death:
+		drop_weapon()
+	died.emit()
+	_death_tween.tween_interval(corpse_linger_time)
+	# Blended transparency for the fade. Alpha cut would make it pop out instead.
+	_death_tween.tween_callback(func() -> void: _sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED)
+	_death_tween.tween_property(_sprite, "modulate:a", 0.0, corpse_fade_time)
+	if _blob_shadow:
+		_death_tween.parallel().tween_property(_blob_shadow, "modulate:a", 0.0, corpse_fade_time)
+	_death_tween.tween_callback(_on_corpse_faded)
+
+
+## Topples over like die(), but gets back up after knockout_time. What
+## happens to essential citizens instead of dying.
+func knock_out(fall_direction := Vector3.ZERO) -> void:
+	if is_down:
+		return
+	is_knocked_out = true
+	_fall_down(fall_direction)
+	knocked_out.emit()
+	_death_tween.tween_interval(knockout_time)
+	_death_tween.tween_property(self, "_death_tilt", 0.0, 0.45) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN_OUT)
+	_death_tween.tween_callback(_get_up)
+
+
+func _get_up() -> void:
+	is_knocked_out = false
+	health = maxi(roundi(max_health * get_up_health), 1)
+	_stand_back_up()
+	_squash(Vector2(0.85, 1.15))
+	got_up.emit()
+
+
+## Knocks the citizen flat: out of the fight, untargetable, lying on their side.
+## Starts _death_tween with the topple, for the caller to add on to.
+func _fall_down(fall_direction: Vector3) -> void:
 	health = 0
 	_walk_velocity = Vector3.ZERO
 	_jump_buffer_left = 0.0
@@ -319,25 +401,17 @@ func die(fall_direction := Vector3.ZERO) -> void:
 	_sprite.billboard = BaseMaterial3D.BILLBOARD_DISABLED
 	_sprite_scale = Vector2.ONE
 	_weapon_pivot.hide()
-	if drops_weapon_on_death:
-		drop_weapon()
 	_health_label.hide()
 	if _flash:
 		_flash.kill()
 	_sprite.modulate = Color.WHITE
-	died.emit()
 
+	if _death_tween:
+		_death_tween.kill()
 	_death_tween = create_tween()
 	_death_tween.tween_property(self, "_death_tilt", 1.0, 0.35) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_death_tween.tween_callback(_on_body_hit_ground)
-	_death_tween.tween_interval(corpse_linger_time)
-	# Blended transparency for the fade. Alpha cut would make it pop out instead.
-	_death_tween.tween_callback(func() -> void: _sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED)
-	_death_tween.tween_property(_sprite, "modulate:a", 0.0, corpse_fade_time)
-	if _blob_shadow:
-		_death_tween.parallel().tween_property(_blob_shadow, "modulate:a", 0.0, corpse_fade_time)
-	_death_tween.tween_callback(_on_corpse_faded)
 
 
 func _on_body_hit_ground() -> void:
@@ -355,6 +429,15 @@ func _on_corpse_faded() -> void:
 func _revive() -> void:
 	is_dead = false
 	health = max_health
+	_stand_back_up()
+	global_position = _spawn_position
+	velocity = Vector3.ZERO
+	_push_velocity = Vector3.ZERO
+	reset_physics_interpolation()
+
+
+## Undoes _fall_down: back in the groups, colliding, and facing the camera.
+func _stand_back_up() -> void:
 	_death_tilt = 0.0
 	for group in _living_groups:
 		add_to_group(group)
@@ -367,10 +450,6 @@ func _revive() -> void:
 	if _blob_shadow:
 		_blob_shadow.modulate.a = 1.0
 	_health_label.visible = show_health_label
-	global_position = _spawn_position
-	velocity = Vector3.ZERO
-	_push_velocity = Vector3.ZERO
-	reset_physics_interpolation()
 
 
 func enter_water(water: Water) -> void:
@@ -393,6 +472,8 @@ func _update_swimming() -> void:
 
 func _update_walk_velocity(move_dir: Vector3, delta: float) -> void:
 	var speed := move_speed * (swim_speed_factor if is_swimming else 1.0)
+	if is_blocking:
+		speed *= block_move_factor
 	var target := Vector3(move_dir.x, 0.0, move_dir.z) * speed
 	var rate := acceleration if move_dir != Vector3.ZERO else friction
 	_walk_velocity = _walk_velocity.move_toward(target, rate * delta)
@@ -490,7 +571,7 @@ func _spawn_effect(scene: PackedScene, at: Vector3, direction := Vector3.UP) -> 
 
 
 func _update_visuals(delta: float) -> void:
-	if is_dead:
+	if is_down:
 		_pose_corpse()
 		return
 	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
@@ -596,7 +677,7 @@ func _update_weapon_sprite(delta: float) -> void:
 			# Put the grip on the pivot so the weapon swings around the hand.
 			_weapon_sprite.offset.x = weapon.texture.get_width() * 0.5 - weapon.grip_pixels
 	var swinging := _swing_time_left > 0.0
-	_weapon_pivot.visible = weapon.texture != null and (swinging or weapon.visible_when_idle)
+	_weapon_pivot.visible = weapon.texture != null and (swinging or is_blocking or weapon.visible_when_idle)
 	if not _weapon_pivot.visible:
 		return
 
@@ -615,6 +696,10 @@ func _update_weapon_sprite(delta: float) -> void:
 			# Shoot straight out and pull back.
 			_weapon_angle = 0.0
 			thrust = sin(progress * PI) * weapon.jab_distance
+	if is_blocking and not swinging:
+		# Guard up: held across the body, pointing up on screen.
+		_weapon_angle = lerp_angle(_weapon_angle, PI * 0.5, 1.0 - exp(-25.0 * delta))
+		thrust = 0.1
 
 	# The sprite lies in the camera's plane, so this is a plain 2D rotation on
 	# screen. Hold it a little ahead so it draws in front when facing the

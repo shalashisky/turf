@@ -1,0 +1,275 @@
+[gd_scene load_steps=26 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://scenes/camera_rig.tscn" id="2_camera"]
+[ext_resource type="Script" path="res://scripts/hud.gd" id="3_hud"]
+[ext_resource type="Script" path="res://scripts/clock_label.gd" id="4_clock"]
+[ext_resource type="PackedScene" path="res://scenes/entrance_door.tscn" id="5_door"]
+[ext_resource type="Shader" path="res://shaders/occlusion_cutout.gdshader" id="6_cutout"]
+[ext_resource type="Script" path="res://scripts/shop_clerk.gd" id="7_clerk"]
+[ext_resource type="Texture2D" path="res://art/clerk_8dir.png" id="8_clerk_sheet"]
+[ext_resource type="Script" path="res://scripts/interactable.gd" id="9_interactable"]
+
+[sub_resource type="Environment" id="env"]
+background_mode = 1
+background_color = Color(0.02, 0.02, 0.03, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.6, 0.6, 0.62, 1)
+ambient_light_energy = 0.9
+tonemap_mode = 2
+
+[sub_resource type="StandardMaterial3D" id="floor_mat"]
+albedo_color = Color(0.62, 0.58, 0.48, 1)
+
+[sub_resource type="BoxMesh" id="floor_mesh"]
+material = SubResource("floor_mat")
+size = Vector3(10, 0.2, 7)
+
+[sub_resource type="BoxShape3D" id="floor_shape"]
+size = Vector3(10, 0.2, 7)
+
+[sub_resource type="ShaderMaterial" id="wall_mat"]
+shader = ExtResource("6_cutout")
+shader_parameter/albedo = Color(0.75, 0.68, 0.55, 1)
+
+[sub_resource type="BoxMesh" id="wall_long_mesh"]
+material = SubResource("wall_mat")
+size = Vector3(10.6, 3, 0.3)
+
+[sub_resource type="BoxMesh" id="ledge_mesh"]
+material = SubResource("wall_mat")
+size = Vector3(10.6, 0.4, 0.3)
+
+[sub_resource type="BoxMesh" id="wall_short_mesh"]
+material = SubResource("wall_mat")
+size = Vector3(0.3, 3, 7)
+
+[sub_resource type="BoxShape3D" id="wall_long_shape"]
+size = Vector3(10.6, 3, 0.3)
+
+[sub_resource type="BoxShape3D" id="wall_short_shape"]
+size = Vector3(0.3, 3, 7)
+
+[sub_resource type="StandardMaterial3D" id="counter_mat"]
+albedo_color = Color(0.45, 0.28, 0.18, 1)
+
+[sub_resource type="BoxMesh" id="counter_mesh"]
+material = SubResource("counter_mat")
+size = Vector3(3.6, 1.0, 0.8)
+
+[sub_resource type="BoxShape3D" id="counter_shape"]
+size = Vector3(3.6, 1.0, 0.8)
+
+[sub_resource type="StandardMaterial3D" id="shelf_mat"]
+albedo_color = Color(0.35, 0.35, 0.38, 1)
+
+[sub_resource type="BoxMesh" id="shelf_mesh"]
+material = SubResource("shelf_mat")
+size = Vector3(1.8, 2.0, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="goods_mat_0"]
+albedo_color = Color(0.85, 0.3, 0.25, 1)
+
+[sub_resource type="BoxMesh" id="goods_mesh_0"]
+material = SubResource("goods_mat_0")
+size = Vector3(1.6, 0.3, 0.4)
+
+[sub_resource type="StandardMaterial3D" id="goods_mat_1"]
+albedo_color = Color(0.95, 0.8, 0.3, 1)
+
+[sub_resource type="BoxMesh" id="goods_mesh_1"]
+material = SubResource("goods_mat_1")
+size = Vector3(1.6, 0.3, 0.4)
+
+[sub_resource type="StandardMaterial3D" id="goods_mat_2"]
+albedo_color = Color(0.3, 0.6, 0.9, 1)
+
+[sub_resource type="BoxMesh" id="goods_mesh_2"]
+material = SubResource("goods_mat_2")
+size = Vector3(1.6, 0.3, 0.4)
+
+[sub_resource type="StandardMaterial3D" id="goods_mat_3"]
+albedo_color = Color(0.4, 0.75, 0.4, 1)
+
+[sub_resource type="BoxMesh" id="goods_mesh_3"]
+material = SubResource("goods_mat_3")
+size = Vector3(1.6, 0.3, 0.4)
+
+[sub_resource type="SphereShape3D" id="talk_shape"]
+radius = 1.3
+
+[node name="Shop" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Floor" type="StaticBody3D" parent="."]
+
+[node name="Mesh" type="MeshInstance3D" parent="Floor"]
+position = Vector3(0, -0.1, 0)
+mesh = SubResource("floor_mesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+position = Vector3(0, -0.1, 0)
+shape = SubResource("floor_shape")
+
+[node name="Walls" type="StaticBody3D" parent="."]
+
+[node name="North" type="MeshInstance3D" parent="Walls"]
+position = Vector3(0, 1.5, -3.65)
+mesh = SubResource("wall_long_mesh")
+
+[node name="NorthShape" type="CollisionShape3D" parent="Walls"]
+position = Vector3(0, 1.5, -3.65)
+shape = SubResource("wall_long_shape")
+
+[node name="South" type="MeshInstance3D" parent="Walls"]
+position = Vector3(0, 0.2, 3.65)
+mesh = SubResource("ledge_mesh")
+
+[node name="SouthShape" type="CollisionShape3D" parent="Walls"]
+position = Vector3(0, 1.5, 3.65)
+shape = SubResource("wall_long_shape")
+
+[node name="West" type="MeshInstance3D" parent="Walls"]
+position = Vector3(-5.15, 1.5, 0)
+mesh = SubResource("wall_short_mesh")
+
+[node name="WestShape" type="CollisionShape3D" parent="Walls"]
+position = Vector3(-5.15, 1.5, 0)
+shape = SubResource("wall_short_shape")
+
+[node name="East" type="MeshInstance3D" parent="Walls"]
+position = Vector3(5.15, 1.5, 0)
+mesh = SubResource("wall_short_mesh")
+
+[node name="EastShape" type="CollisionShape3D" parent="Walls"]
+position = Vector3(5.15, 1.5, 0)
+shape = SubResource("wall_short_shape")
+
+[node name="Shelf_1" type="MeshInstance3D" parent="."]
+position = Vector3(0.0, 1.0, -3.2)
+mesh = SubResource("shelf_mesh")
+
+[node name="GoodsLow_1" type="MeshInstance3D" parent="."]
+position = Vector3(0.0, 0.75, -2.95)
+mesh = SubResource("goods_mesh_0")
+
+[node name="GoodsHigh_1" type="MeshInstance3D" parent="."]
+position = Vector3(0.0, 1.45, -2.95)
+mesh = SubResource("goods_mesh_2")
+
+[node name="Shelf_2" type="MeshInstance3D" parent="."]
+position = Vector3(2.2, 1.0, -3.2)
+mesh = SubResource("shelf_mesh")
+
+[node name="GoodsLow_2" type="MeshInstance3D" parent="."]
+position = Vector3(2.2, 0.75, -2.95)
+mesh = SubResource("goods_mesh_1")
+
+[node name="GoodsHigh_2" type="MeshInstance3D" parent="."]
+position = Vector3(2.2, 1.45, -2.95)
+mesh = SubResource("goods_mesh_3")
+
+[node name="Shelf_3" type="MeshInstance3D" parent="."]
+position = Vector3(4.0, 1.0, -3.2)
+mesh = SubResource("shelf_mesh")
+
+[node name="GoodsLow_3" type="MeshInstance3D" parent="."]
+position = Vector3(4.0, 0.75, -2.95)
+mesh = SubResource("goods_mesh_2")
+
+[node name="GoodsHigh_3" type="MeshInstance3D" parent="."]
+position = Vector3(4.0, 1.45, -2.95)
+mesh = SubResource("goods_mesh_0")
+
+[node name="Counter" type="StaticBody3D" parent="."]
+position = Vector3(1.6, 0, -0.9)
+
+[node name="Mesh" type="MeshInstance3D" parent="Counter"]
+position = Vector3(0, 0.5, 0)
+mesh = SubResource("counter_mesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Counter"]
+position = Vector3(0, 0.5, 0)
+shape = SubResource("counter_shape")
+
+[node name="Clerk" type="Node3D" parent="."]
+position = Vector3(1.6, 0, -1.9)
+script = ExtResource("7_clerk")
+
+[node name="Sprite" type="Sprite3D" parent="Clerk"]
+position = Vector3(0, 0.63, 0)
+shaded = true
+pixel_size = 0.045
+billboard = 2
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("8_clerk_sheet")
+hframes = 4
+vframes = 8
+
+[node name="Use" type="Area3D" parent="Clerk"]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("9_interactable")
+prompt = "Shop"
+prompt_height = 2.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Clerk/Use"]
+position = Vector3(0, 0.8, 1.6)
+shape = SubResource("talk_shape")
+
+[node name="Lights" type="Node3D" parent="."]
+
+[node name="Fluorescent_1" type="OmniLight3D" parent="Lights"]
+position = Vector3(-2, 2.8, 0)
+light_color = Color(0.92, 1, 0.95, 1)
+light_energy = 1.2
+omni_range = 6.0
+
+[node name="Fluorescent_2" type="OmniLight3D" parent="Lights"]
+position = Vector3(2.5, 2.8, -0.5)
+light_color = Color(0.92, 1, 0.95, 1)
+light_energy = 1.2
+omni_range = 6.0
+
+[node name="ExitDoor" parent="." instance=ExtResource("5_door")]
+position = Vector3(-3.5, 0, -3.5)
+target_scene = "res://scenes/main.tscn"
+target_entrance = "Shop"
+
+[node name="Street" type="Marker3D" parent="." groups=["entrances"]]
+position = Vector3(-3.5, 0, -2.1)
+
+[node name="Player" parent="." node_paths=PackedStringArray("camera_rig") instance=ExtResource("1_player")]
+position = Vector3(-3.5, 0, -2.1)
+camera_rig = NodePath("../CameraRig")
+
+[node name="CameraRig" parent="." node_paths=PackedStringArray("target") instance=ExtResource("2_camera")]
+target = NodePath("../Player")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Help" type="Label" parent="HUD" node_paths=PackedStringArray("player")]
+offset_left = 12.0
+offset_top = 8.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+script = ExtResource("3_hud")
+player = NodePath("../../Player")
+
+[node name="Clock" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -260.0
+offset_top = 8.0
+offset_right = -12.0
+offset_bottom = 66.0
+grow_horizontal = 0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 2
+script = ExtResource("4_clock")

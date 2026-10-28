@@ -6,6 +6,8 @@ player_8dir.png: 4 columns x 8 rows of 32x32 frames.
   Columns: 0 = idle, 1-3 = walk cycle
 dummy_8dir.png: same layout as the player sheet, without the facing arrow.
 rap_dawg_8dir.png: same layout, a dog in a beanie, for the Rap Dawg neighbor.
+clerk_8dir.png: same layout, a store clerk in a green apron.
+cash.png: 14x8 dollar bill, for cash drops.
 shadow_blob.png: soft round shadow projected under the player.
 baseball_bat.png: 24x8 bat pointing right, grip at the left edge.
 pickup_arrow.png: 11x10 green arrow pointing down, shown above pickups.
@@ -42,6 +44,14 @@ RAP_DAWG = {
     "skin": (150, 100, 60, 255),  # fur
     "hair": (240, 120, 30, 255),  # beanie
     "dog": True,
+}
+CLERK = {
+    "jacket": (60, 140, 85, 255),
+    "stripe": (235, 235, 225, 255),
+    "pants": (95, 70, 50, 255),
+    "shoes": (40, 35, 35, 255),
+    "skin": (190, 140, 100, 255),
+    "hair": (150, 150, 150, 255),
 }
 DUMMY = {
     "jacket": (180, 150, 220, 255),
@@ -187,6 +197,8 @@ def main():
     write_png(art / "player_8dir.png", draw_sheet(PLAYER, arrow=True))
     write_png(art / "dummy_8dir.png", draw_sheet(DUMMY, arrow=False))
     write_png(art / "rap_dawg_8dir.png", draw_sheet(RAP_DAWG, arrow=False))
+    write_png(art / "clerk_8dir.png", draw_sheet(CLERK, arrow=False))
+    write_png(art / "cash.png", draw_cash())
     write_png(art / "shadow_blob.png", draw_blob(32))
     write_png(art / "baseball_bat.png", draw_bat())
     write_png(art / "pickup_arrow.png", draw_pickup_arrow())
@@ -299,6 +311,18 @@ def draw_weed_plant(stage):
                 rect(image, bx, by - 3, bx, by - 3, ripe if stage == 4 else bud)
                 for hx, hy in ((bx - 1, by - 1), (bx + 1, by + 1), (bx, by - 3)):
                     rect(image, hx, hy, hx, hy, orange if stage == 4 else hair)
+    add_outline(image)
+    return image
+
+
+def draw_cash():
+    image = new_image(14, 8)
+    green = (90, 170, 90, 255)
+    dark = (50, 115, 60, 255)
+    rect(image, 1, 1, 12, 6, green)
+    rect(image, 2, 2, 11, 5, dark)
+    rect(image, 3, 2, 10, 5, green)
+    rect(image, 6, 2, 7, 5, dark)  # the portrait in the middle
     add_outline(image)
     return image
 

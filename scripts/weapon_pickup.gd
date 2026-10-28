@@ -40,7 +40,7 @@ func _ready() -> void:
 
 ## Whether `citizen` may pick this up right now.
 func is_available_to(citizen: Citizen) -> bool:
-	return citizen != _ignored and citizen.can_carry_weapons and not citizen.is_dead \
+	return citizen != _ignored and citizen.can_carry_weapons and not citizen.is_down \
 		and citizen.wants_weapon(weapon) and not is_queued_for_deletion()
 
 

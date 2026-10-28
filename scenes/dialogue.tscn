@@ -80,10 +80,11 @@ text = "..."
 fit_content = true
 scroll_active = false
 
-[node name="Options" type="VBoxContainer" parent="Box/Lines"]
+[node name="Options" type="GridContainer" parent="Box/Lines"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 0
+theme_override_constants/h_separation = 48
+theme_override_constants/v_separation = 0
 
 [node name="More" type="Label" parent="Box"]
 unique_name_in_owner = true

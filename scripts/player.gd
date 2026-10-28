@@ -41,6 +41,11 @@ func aim_mode_name() -> String:
 	return AimMode.keys()[aim_mode]
 
 
+## Allied neighbors fight on our side, so our swings don't hit them.
+func _is_ally(other: Citizen) -> bool:
+	return other is Neighbor and other.is_allied()
+
+
 func attack() -> bool:
 	if not can_attack():
 		return false
@@ -53,6 +58,7 @@ func attack() -> bool:
 
 
 func _choose_move_direction(_delta: float) -> Vector3:
+	set_blocking(Input.is_action_pressed("block") and not Dialogue.blocks_input())
 	if Dialogue.blocks_input():
 		return Vector3.ZERO
 	if Input.is_action_just_pressed("jump"):
@@ -142,8 +148,8 @@ func _find_auto_aim_target() -> Node3D:
 
 func _update_visuals(delta: float) -> void:
 	super(delta)
-	_aim_pivot.visible = not is_dead
-	if is_dead:
+	_aim_pivot.visible = not is_down
+	if is_down:
 		return
 	_aim_pivot.rotation.y = atan2(-facing.x, -facing.z)
 	# Keep the aim arrow on top of the water while swimming.

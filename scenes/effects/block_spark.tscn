@@ -1,0 +1,48 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/burst.gd" id="1_script"]
+
+[sub_resource type="Curve" id="shrink"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="shrink_texture"]
+curve = SubResource("shrink")
+
+[sub_resource type="Gradient" id="shades"]
+colors = PackedColorArray(1, 1, 0.85, 1, 1, 0.75, 0.25, 1)
+
+[sub_resource type="GradientTexture1D" id="shades_texture"]
+gradient = SubResource("shades")
+
+[sub_resource type="ParticleProcessMaterial" id="spray"]
+direction = Vector3(0, 1, 0)
+spread = 70.0
+initial_velocity_min = 2.0
+initial_velocity_max = 4.5
+gravity = Vector3(0, -6, 0)
+damping_min = 4.0
+damping_max = 6.0
+scale_curve = SubResource("shrink_texture")
+color_initial_ramp = SubResource("shades_texture")
+
+[sub_resource type="StandardMaterial3D" id="square_mat"]
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 3
+billboard_keep_scale = true
+
+[sub_resource type="QuadMesh" id="square"]
+material = SubResource("square_mat")
+size = Vector2(0.06, 0.06)
+
+[node name="BlockSpark" type="GPUParticles3D"]
+layers = 2
+emitting = false
+amount = 10
+lifetime = 0.3
+one_shot = true
+explosiveness = 1.0
+process_material = SubResource("spray")
+draw_pass_1 = SubResource("square")
+script = ExtResource("1_script")

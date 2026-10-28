@@ -1,7 +1,6 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/entrance_door.gd" id="1_script"]
-[ext_resource type="Script" path="res://scripts/interactable.gd" id="2_interactable"]
 
 [sub_resource type="StandardMaterial3D" id="frame_mat"]
 albedo_color = Color(0.22, 0.2, 0.22, 1)
@@ -25,8 +24,8 @@ size = Vector3(0.9, 2.02, 0.06)
 material = SubResource("frame_mat")
 size = Vector3(0.07, 0.07, 0.06)
 
-[sub_resource type="BoxShape3D" id="use_shape"]
-size = Vector3(1.4, 2, 1.4)
+[sub_resource type="BoxShape3D" id="trigger_shape"]
+size = Vector3(1.0, 2, 0.6)
 
 [node name="EntranceDoor" type="Node3D"]
 physics_interpolation_mode = 2
@@ -55,12 +54,10 @@ mesh = SubResource("door_mesh")
 position = Vector3(0.32, -0.05, 0.05)
 mesh = SubResource("knob_mesh")
 
-[node name="Use" type="Area3D" parent="."]
+[node name="Trigger" type="Area3D" parent="."]
 collision_layer = 0
 collision_mask = 2
-script = ExtResource("2_interactable")
-prompt_height = 2.5
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Use"]
-position = Vector3(0, 1, 0.75)
-shape = SubResource("use_shape")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Trigger"]
+position = Vector3(0, 1, 0.35)
+shape = SubResource("trigger_shape")

@@ -24,7 +24,8 @@ portrait = ExtResource("2_portrait")
 gift_reactions = {
 "weed": 30
 }
-move_speed = 1.5
+move_speed = 4.0
+essential = true
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 position = Vector3(0, 0.65, 0)

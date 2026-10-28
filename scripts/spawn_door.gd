@@ -32,6 +32,8 @@ const WALK_OUT_TIME := 0.6
 
 ## Who the spawned enemies go after. Null while the door is quiet.
 var target: Citizen
+## False once the turf's been taken: the door never opens again.
+var enabled := true
 
 var _spawn_timer := 0.0
 var _alive: Array[Citizen] = []
@@ -46,8 +48,18 @@ func _ready() -> void:
 	_set_alarm_lamp(false)
 
 
+## The turf's been taken: stop for good.
+func shut_for_good() -> void:
+	enabled = false
+	target = null
+	_set_alarm_lamp(false)
+
+
 func activate(attacker: Citizen) -> void:
-	if attacker == target:
+	if not enabled:
+		return
+	# Stick with the first attacker until they're down.
+	if attacker == target or (target and is_instance_valid(target) and not target.is_down):
 		return
 	if target == null:
 		_spawn_timer = first_spawn_delay + randf() * spawn_jitter
@@ -56,7 +68,7 @@ func activate(attacker: Citizen) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if target and (not is_instance_valid(target) or target.is_dead):
+	if target and (not is_instance_valid(target) or target.is_down):
 		target = null
 		_set_alarm_lamp(false)
 	if target == null or _busy:

@@ -1,6 +1,6 @@
 extends Node
 ## Game state that has to outlive scene changes and streamed-out chunks:
-## crops, inventory, reputation with neighbors, and so on. Autoloaded as WorldState. Saving and loading
+## crops, inventory, money, reputation with neighbors, turf, and so on. Autoloaded as WorldState. Saving and loading
 ## will serialize what's in here.
 ##
 ## Crops are stored as timestamps, not ticked every frame, so they keep
@@ -8,6 +8,7 @@ extends Node
 ## GameClock.absolute_minutes() whenever it's asked for.
 
 signal inventory_changed
+signal money_changed
 signal reputation_changed(npc_id: String)
 
 ## Fed growing time from seed to harvest: two in-game days.
@@ -18,13 +19,17 @@ const NUTRIENT_MINUTES := 24.0 * 60.0
 const HARVEST_YIELD := Vector2i(3, 6)
 
 ## How each inventory item is shown to the player.
-const ITEM_NAMES := {"weed": "Weed"}
+const ITEM_NAMES := {"weed": "Weed", "weed_seed": "Weed Seed"}
 ## Reputation runs from hated to best friends.
 const REPUTATION_RANGE := Vector2i(-250, 1000)
 
 enum TrayState { EMPTY, GROWING, READY }
 
-var inventory := {}
+## What the player is carrying, by item id. Starts with a few seeds.
+var inventory := {"weed_seed": 3}
+var money := 25
+## Turf the player has taken over, by turf id.
+var owned_turf := {}
 ## How much each neighbor likes the player, by NPC id.
 var reputation := {}
 
@@ -39,6 +44,27 @@ func item_count(item: String) -> int:
 func add_item(item: String, count: int) -> void:
 	inventory[item] = maxi(item_count(item) + count, 0)
 	inventory_changed.emit()
+
+
+func add_money(amount: int) -> void:
+	money = maxi(money + amount, 0)
+	money_changed.emit()
+
+
+## Takes `amount` if the player has it. Returns whether they did.
+func spend_money(amount: int) -> bool:
+	if money < amount:
+		return false
+	add_money(-amount)
+	return true
+
+
+func owns_turf(turf_id: String) -> bool:
+	return owned_turf.get(turf_id, false)
+
+
+func claim_turf(turf_id: String) -> void:
+	owned_turf[turf_id] = true
 
 
 func item_name(item: String) -> String:
@@ -84,10 +110,15 @@ func tray_nutrients(id: String) -> float:
 	return clampf(left / NUTRIENT_MINUTES, 0.0, 1.0)
 
 
-## Plants a seed with a full reservoir.
-func plant_tray(id: String) -> void:
+## Plants a seed with a full reservoir. Needs a weed seed in the inventory.
+## Returns whether it planted.
+func plant_tray(id: String) -> bool:
+	if item_count("weed_seed") <= 0:
+		return false
+	add_item("weed_seed", -1)
 	var now := GameClock.absolute_minutes()
 	_trays[id] = {"growth": 0.0, "fed_until": now + NUTRIENT_MINUTES, "updated_at": now}
+	return true
 
 
 func top_up_tray(id: String) -> void:

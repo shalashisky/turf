@@ -5,12 +5,14 @@ player_8dir.png: 4 columns x 8 rows of 32x32 frames.
   Rows (facing, clockwise from "toward the camera"): s, se, e, ne, n, nw, w, sw
   Columns: 0 = idle, 1-3 = walk cycle
 dummy_8dir.png: same layout as the player sheet, without the facing arrow.
+rap_dawg_8dir.png: same layout, a dog in a beanie, for the Rap Dawg neighbor.
 shadow_blob.png: soft round shadow projected under the player.
 baseball_bat.png: 24x8 bat pointing right, grip at the left edge.
 pickup_arrow.png: 11x10 green arrow pointing down, shown above pickups.
 fist.png: 10x9 fist punching right, wrist at the left edge.
 brass_knuckles.png: the fist with a brass band across the knuckles.
 knife.png: 20x6 knife pointing right, handle at the left edge.
+weed_plant.png: 5 frames of 32x32, seedling to ready-to-harvest.
 """
 import struct
 import zlib
@@ -31,6 +33,15 @@ PLAYER = {
     "shoes": (235, 235, 235, 255),
     "skin": (140, 90, 60, 255),
     "hair": (25, 20, 20, 255),
+}
+RAP_DAWG = {
+    "jacket": (70, 175, 235, 255),
+    "stripe": (70, 175, 235, 255),
+    "pants": (35, 55, 140, 255),
+    "shoes": (220, 45, 45, 255),
+    "skin": (150, 100, 60, 255),  # fur
+    "hair": (240, 120, 30, 255),  # beanie
+    "dog": True,
 }
 DUMMY = {
     "jacket": (180, 150, 220, 255),
@@ -72,6 +83,11 @@ def draw_character(palette, facing, step, arrow):
     rect(frame, 10, 14 - bob, 10, 23 - bob, palette["stripe"])
     rect(frame, 21, 14 - bob, 21, 23 - bob, palette["stripe"])
 
+    if palette.get("dog"):
+        draw_dog_head(frame, palette, dx, dy, bob)
+        add_outline(frame)
+        return frame
+
     # Head: hair covers the back of the head when facing away
     rect(frame, 12, 5 - bob, 19, 13 - bob, palette["skin"])
     if dy < 0:
@@ -98,6 +114,30 @@ def draw_character(palette, facing, step, arrow):
         tip_x, tip_y = int(round(cx + ux * 10)), int(round(cy + uy * 10))
         rect(frame, tip_x - 1, tip_y - 1, tip_x + 1, tip_y + 1, ARROW)
     return frame
+
+
+def draw_dog_head(frame, palette, dx, dy, bob):
+    fur = palette["skin"]
+    ears = (25, 20, 20, 255)
+    muzzle = (205, 165, 115, 255)
+    rect(frame, 12, 5 - bob, 19, 13 - bob, fur)
+    # Floppy ears hang down either side, on the far side only when side-on.
+    if dx >= 0:
+        rect(frame, 10, 6 - bob, 11, 12 - bob, ears)
+    if dx <= 0:
+        rect(frame, 20, 6 - bob, 21, 12 - bob, ears)
+    # Beanie, with a frog badge on the front.
+    rect(frame, 11, 2 - bob, 20, 6 - bob, palette["hair"])
+    if dy >= 0:
+        badge = 15 + dx * 2
+        rect(frame, badge, 4 - bob, badge + 1, 5 - bob, (70, 185, 80, 255))
+        eye_shift = dx * 2
+        if dy > 0 or dx == 0:
+            rect(frame, 14 + eye_shift, 8 - bob, 14 + eye_shift, 8 - bob, OUTLINE)
+        rect(frame, 17 + eye_shift, 8 - bob, 17 + eye_shift, 8 - bob, OUTLINE)
+        snout = 14 + dx * 3
+        rect(frame, snout, 10 - bob, snout + 3, 12 - bob, muzzle)
+        rect(frame, snout + 1, 10 - bob, snout + 2, 10 - bob, OUTLINE)  # nose
 
 
 def add_outline(image):
@@ -146,12 +186,19 @@ def main():
 
     write_png(art / "player_8dir.png", draw_sheet(PLAYER, arrow=True))
     write_png(art / "dummy_8dir.png", draw_sheet(DUMMY, arrow=False))
+    write_png(art / "rap_dawg_8dir.png", draw_sheet(RAP_DAWG, arrow=False))
     write_png(art / "shadow_blob.png", draw_blob(32))
     write_png(art / "baseball_bat.png", draw_bat())
     write_png(art / "pickup_arrow.png", draw_pickup_arrow())
     write_png(art / "fist.png", draw_fist())
     write_png(art / "brass_knuckles.png", draw_fist(brass=True))
     write_png(art / "knife.png", draw_knife())
+    plants = new_image(32 * 5, 32)
+    for stage in range(5):
+        frame = draw_weed_plant(stage)
+        for y in range(32):
+            plants[y][stage * 32 : stage * 32 + 32] = frame[y]
+    write_png(art / "weed_plant.png", plants)
 
 
 def draw_bat():
@@ -195,6 +242,63 @@ def draw_knife():
     rect(image, 8, 2, 16, 3, (200, 205, 215, 255))  # blade
     rect(image, 8, 2, 15, 2, (240, 245, 250, 255))  # edge shine
     rect(image, 17, 2, 17, 2, (200, 205, 215, 255))  # point
+    add_outline(image)
+    return image
+
+
+def draw_line(image, x0, y0, x1, y1, color):
+    steps = max(abs(x1 - x0), abs(y1 - y0), 1)
+    for i in range(steps + 1):
+        x = round(x0 + (x1 - x0) * i / steps)
+        y = round(y0 + (y1 - y0) * i / steps)
+        rect(image, x, y, x, y, color)
+
+
+def draw_fan_leaf(image, x, y, size, color, tilt=0.0):
+    """A pot leaf: thin blades fanning out from (x, y), pointing up."""
+    import math
+    for angle, scale in ((-70, 0.45), (-40, 0.75), (-15, 0.95), (0, 1.0), (15, 0.95), (40, 0.75), (70, 0.45)):
+        a = math.radians(angle + tilt)
+        length = size * scale
+        draw_line(image, x, y, round(x + math.sin(a) * length), round(y - math.cos(a) * length), color)
+
+
+def draw_weed_plant(stage):
+    image = new_image(32, 32)
+    stem = (70, 120, 50, 255)
+    leaf = (60, 150, 60, 255)
+    dark = (40, 110, 45, 255)
+    pale = (150, 170, 70, 255)
+    bud = (120, 160, 80, 255)
+    hair = (235, 235, 225, 255)
+    ripe = (170, 110, 190, 255)
+    orange = (220, 130, 50, 255)
+    base = 30
+    if stage == 0:
+        draw_line(image, 16, base, 16, base - 4, stem)
+        rect(image, 13, base - 5, 15, base - 4, leaf)
+        rect(image, 17, base - 5, 19, base - 4, leaf)
+    else:
+        height = (10, 18, 25, 26)[stage - 1]
+        top = base - height
+        draw_line(image, 16, base, 16, top, stem)
+        # Pairs of fan leaves up the stem, bigger toward the bottom.
+        levels = (1, 2, 4, 4)[stage - 1]
+        for i in range(levels):
+            y = base - 3 - i * (height - 4) // max(levels, 1)
+            size = max(3, (4, 6, 7, 7)[stage - 1] - i)
+            color = pale if stage == 4 and i == 0 else (leaf if i % 2 == 0 else dark)
+            draw_fan_leaf(image, 15, y, size, color, tilt=-55)
+            draw_fan_leaf(image, 17, y, size, color, tilt=55)
+        draw_fan_leaf(image, 16, top + 2, (3, 4, 5, 4)[stage - 1], leaf)
+        if stage >= 3:
+            # Colas: bud clusters on the top and the side branches.
+            spots = [(16, top + 1)] + [(16 + dx, top + 6 + i * 6) for i, dx in enumerate((-5, 5, -6, 6)) if top + 6 + i * 6 < base - 6]
+            for bx, by in spots:
+                rect(image, bx - 1, by - 2, bx + 1, by + 2, ripe if stage == 4 else bud)
+                rect(image, bx, by - 3, bx, by - 3, ripe if stage == 4 else bud)
+                for hx, hy in ((bx - 1, by - 1), (bx + 1, by + 1), (bx, by - 3)):
+                    rect(image, hx, hy, hx, hy, orange if stage == 4 else hair)
     add_outline(image)
     return image
 

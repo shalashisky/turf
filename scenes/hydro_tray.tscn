@@ -1,0 +1,103 @@
+[gd_scene load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/grow_tray.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://art/weed_plant.png" id="2_plant"]
+[ext_resource type="Script" path="res://scripts/interactable.gd" id="3_interactable"]
+
+[sub_resource type="StandardMaterial3D" id="stand_mat"]
+albedo_color = Color(0.72, 0.72, 0.7, 1)
+
+[sub_resource type="BoxMesh" id="stand_mesh"]
+material = SubResource("stand_mat")
+size = Vector3(1.2, 0.7, 0.7)
+
+[sub_resource type="StandardMaterial3D" id="tub_mat"]
+albedo_color = Color(0.1, 0.1, 0.11, 1)
+
+[sub_resource type="BoxMesh" id="tub_mesh"]
+material = SubResource("tub_mat")
+size = Vector3(1.3, 0.18, 0.8)
+
+[sub_resource type="StandardMaterial3D" id="lid_mat"]
+albedo_color = Color(0.92, 0.92, 0.9, 1)
+
+[sub_resource type="BoxMesh" id="lid_mesh"]
+material = SubResource("lid_mat")
+size = Vector3(1.2, 0.02, 0.7)
+
+[sub_resource type="StandardMaterial3D" id="jug_mat"]
+albedo_color = Color(0.15, 0.25, 0.45, 1)
+
+[sub_resource type="CylinderMesh" id="jug_mesh"]
+material = SubResource("jug_mat")
+top_radius = 0.2
+bottom_radius = 0.22
+height = 0.6
+radial_segments = 12
+
+[sub_resource type="StandardMaterial3D" id="gauge_mat"]
+shading_mode = 0
+albedo_color = Color(0.3, 0.95, 1, 1)
+
+[sub_resource type="BoxMesh" id="gauge_mesh"]
+material = SubResource("gauge_mat")
+size = Vector3(0.07, 0.5, 0.02)
+
+[sub_resource type="BoxShape3D" id="body_shape"]
+size = Vector3(1.75, 0.9, 0.8)
+
+[sub_resource type="BoxShape3D" id="use_shape"]
+size = Vector3(2.2, 2, 1.9)
+
+[node name="HydroTray" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="Stand" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.35, 0)
+mesh = SubResource("stand_mesh")
+
+[node name="Tub" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.79, 0)
+mesh = SubResource("tub_mesh")
+
+[node name="Lid" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.885, 0)
+mesh = SubResource("lid_mesh")
+
+[node name="Plant" type="Sprite3D" parent="."]
+position = Vector3(0, 1.52, 0)
+shaded = true
+pixel_size = 0.045
+billboard = 2
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("2_plant")
+hframes = 5
+
+[node name="Reservoir" type="MeshInstance3D" parent="."]
+position = Vector3(0.88, 0.3, 0.1)
+mesh = SubResource("jug_mesh")
+
+[node name="Gauge" type="Node3D" parent="Reservoir"]
+position = Vector3(0, -0.25, 0.215)
+
+[node name="Bar" type="MeshInstance3D" parent="Reservoir/Gauge"]
+position = Vector3(0, 0.25, 0)
+cast_shadow = 0
+mesh = SubResource("gauge_mesh")
+
+[node name="Body" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Body"]
+position = Vector3(0.22, 0.45, 0)
+shape = SubResource("body_shape")
+
+[node name="Use" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("3_interactable")
+prompt_height = 2.3
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Use"]
+position = Vector3(0.2, 1, 0)
+shape = SubResource("use_shape")

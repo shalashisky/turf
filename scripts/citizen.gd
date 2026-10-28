@@ -176,6 +176,15 @@ func _choose_facing(move_dir: Vector3, _delta: float) -> void:
 		facing = move_dir.normalized()
 
 
+## Turn to look at `point` right away, even while the game is paused.
+func face_toward(point: Vector3) -> void:
+	var offset := point - global_position
+	offset.y = 0.0
+	if offset.length() > 0.01:
+		facing = offset.normalized()
+		_sprite.show_facing(facing, false, false, 0.0)
+
+
 func request_jump() -> void:
 	_jump_buffer_left = jump_buffer_time
 

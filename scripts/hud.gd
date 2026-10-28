@@ -9,6 +9,8 @@ func _process(_delta: float) -> void:
 		+ "Mouse / right stick: aim (auto-aim on attack otherwise)\n" \
 		+ "LMB / J / X / RT: attack\n" \
 		+ "Space / A: jump\n" \
+		+ "E / Y: interact\n" \
 		+ "[ / ]: skip time back / ahead (debug)\n" \
 		+ "Aim mode: %s\n" % player.aim_mode_name() \
-		+ "Weapon: %s" % player.current_weapon().display_name
+		+ "Weapon: %s\n" % player.current_weapon().display_name \
+		+ "Weed: %d" % WorldState.item_count("weed")

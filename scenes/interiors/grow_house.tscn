@@ -1,0 +1,196 @@
+[gd_scene load_steps=20 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://scenes/camera_rig.tscn" id="2_camera"]
+[ext_resource type="Script" path="res://scripts/hud.gd" id="3_hud"]
+[ext_resource type="Script" path="res://scripts/clock_label.gd" id="4_clock"]
+[ext_resource type="PackedScene" path="res://scenes/hydro_tray.tscn" id="5_tray"]
+[ext_resource type="PackedScene" path="res://scenes/entrance_door.tscn" id="6_door"]
+[ext_resource type="Shader" path="res://shaders/occlusion_cutout.gdshader" id="7_cutout"]
+
+[sub_resource type="Environment" id="env"]
+background_mode = 1
+background_color = Color(0.02, 0.02, 0.03, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.5, 0.45, 0.55, 1)
+ambient_light_energy = 1.0
+tonemap_mode = 2
+
+[sub_resource type="StandardMaterial3D" id="floor_mat"]
+albedo_color = Color(0.36, 0.36, 0.38, 1)
+
+[sub_resource type="BoxMesh" id="floor_mesh"]
+material = SubResource("floor_mat")
+size = Vector3(12, 0.2, 8)
+
+[sub_resource type="BoxShape3D" id="floor_shape"]
+size = Vector3(12, 0.2, 8)
+
+[sub_resource type="ShaderMaterial" id="wall_mat"]
+shader = ExtResource("7_cutout")
+shader_parameter/albedo = Color(0.33, 0.37, 0.31, 1)
+
+[sub_resource type="BoxMesh" id="wall_long_mesh"]
+material = SubResource("wall_mat")
+size = Vector3(12.6, 3, 0.3)
+
+[sub_resource type="BoxMesh" id="wall_short_mesh"]
+material = SubResource("wall_mat")
+size = Vector3(0.3, 3, 8)
+
+[sub_resource type="BoxShape3D" id="wall_long_shape"]
+size = Vector3(12.6, 3, 0.3)
+
+[sub_resource type="BoxShape3D" id="wall_short_shape"]
+size = Vector3(0.3, 3, 8)
+
+[sub_resource type="BoxMesh" id="ledge_mesh"]
+material = SubResource("wall_mat")
+size = Vector3(12.6, 0.4, 0.3)
+
+[node name="GrowHouse" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Floor" type="StaticBody3D" parent="."]
+
+[node name="Mesh" type="MeshInstance3D" parent="Floor"]
+position = Vector3(0, -0.1, 0)
+mesh = SubResource("floor_mesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+position = Vector3(0, -0.1, 0)
+shape = SubResource("floor_shape")
+
+[node name="Walls" type="StaticBody3D" parent="."]
+
+[node name="North" type="MeshInstance3D" parent="Walls"]
+position = Vector3(0, 1.5, -4.15)
+mesh = SubResource("wall_long_mesh")
+
+[node name="NorthShape" type="CollisionShape3D" parent="Walls"]
+position = Vector3(0, 1.5, -4.15)
+shape = SubResource("wall_long_shape")
+
+[node name="South" type="MeshInstance3D" parent="Walls"]
+position = Vector3(0, 0.2, 4.15)
+mesh = SubResource("ledge_mesh")
+
+[node name="SouthShape" type="CollisionShape3D" parent="Walls"]
+position = Vector3(0, 1.5, 4.15)
+shape = SubResource("wall_long_shape")
+
+[node name="West" type="MeshInstance3D" parent="Walls"]
+position = Vector3(-6.15, 1.5, 0)
+mesh = SubResource("wall_short_mesh")
+
+[node name="WestShape" type="CollisionShape3D" parent="Walls"]
+position = Vector3(-6.15, 1.5, 0)
+shape = SubResource("wall_short_shape")
+
+[node name="East" type="MeshInstance3D" parent="Walls"]
+position = Vector3(6.15, 1.5, 0)
+mesh = SubResource("wall_short_mesh")
+
+[node name="EastShape" type="CollisionShape3D" parent="Walls"]
+position = Vector3(6.15, 1.5, 0)
+shape = SubResource("wall_short_shape")
+
+[node name="Tray_1" parent="." instance=ExtResource("5_tray")]
+position = Vector3(-3.5, 0, -0.9)
+tray_id = "grow_house_1"
+
+[node name="Tray_2" parent="." instance=ExtResource("5_tray")]
+position = Vector3(0.0, 0, -0.9)
+tray_id = "grow_house_2"
+
+[node name="Tray_3" parent="." instance=ExtResource("5_tray")]
+position = Vector3(3.5, 0, -0.9)
+tray_id = "grow_house_3"
+
+[node name="Tray_4" parent="." instance=ExtResource("5_tray")]
+position = Vector3(-3.5, 0, 1.7)
+tray_id = "grow_house_4"
+
+[node name="Tray_5" parent="." instance=ExtResource("5_tray")]
+position = Vector3(0.0, 0, 1.7)
+tray_id = "grow_house_5"
+
+[node name="Tray_6" parent="." instance=ExtResource("5_tray")]
+position = Vector3(3.5, 0, 1.7)
+tray_id = "grow_house_6"
+
+[node name="GrowLight_1" type="OmniLight3D" parent="."]
+position = Vector3(-3.5, 2.4, 0.4)
+light_color = Color(0.9, 0.35, 1, 1)
+light_energy = 1.8
+omni_range = 4.5
+omni_attenuation = 1.2
+
+[node name="GrowLight_2" type="OmniLight3D" parent="."]
+position = Vector3(0.0, 2.4, 0.4)
+light_color = Color(0.9, 0.35, 1, 1)
+light_energy = 1.8
+omni_range = 4.5
+omni_attenuation = 1.2
+
+[node name="GrowLight_3" type="OmniLight3D" parent="."]
+position = Vector3(3.5, 2.4, 0.4)
+light_color = Color(0.9, 0.35, 1, 1)
+light_energy = 1.8
+omni_range = 4.5
+omni_attenuation = 1.2
+
+[node name="FillLight" type="OmniLight3D" parent="."]
+position = Vector3(0, 3.6, 0.8)
+light_color = Color(1, 0.92, 0.98, 1)
+light_energy = 0.8
+omni_range = 9.0
+
+[node name="DoorBulb" type="OmniLight3D" parent="."]
+position = Vector3(0, 2.6, -3.2)
+light_color = Color(1, 0.78, 0.55, 1)
+light_energy = 0.7
+omni_range = 5.0
+
+[node name="ExitDoor" parent="." instance=ExtResource("6_door")]
+position = Vector3(0, 0, -4.0)
+target_scene = "res://scenes/main.tscn"
+target_entrance = "GrowHouse"
+prompt = "Leave"
+
+[node name="Street" type="Marker3D" parent="." groups=["entrances"]]
+position = Vector3(0, 0, -3.0)
+
+[node name="Player" parent="." node_paths=PackedStringArray("camera_rig") instance=ExtResource("1_player")]
+position = Vector3(0, 0, -3.0)
+camera_rig = NodePath("../CameraRig")
+
+[node name="CameraRig" parent="." node_paths=PackedStringArray("target") instance=ExtResource("2_camera")]
+target = NodePath("../Player")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Help" type="Label" parent="HUD" node_paths=PackedStringArray("player")]
+offset_left = 12.0
+offset_top = 8.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+script = ExtResource("3_hud")
+player = NodePath("../../Player")
+
+[node name="Clock" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -260.0
+offset_top = 8.0
+offset_right = -12.0
+offset_bottom = 66.0
+grow_horizontal = 0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 2
+script = ExtResource("4_clock")

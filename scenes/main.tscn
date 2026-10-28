@@ -15,6 +15,8 @@
 [ext_resource type="Script" path="res://scripts/day_night.gd" id="13_day_night"]
 [ext_resource type="Script" path="res://scripts/clock_label.gd" id="14_clock"]
 [ext_resource type="PackedScene" path="res://scenes/street_lamp.tscn" id="15_lamp"]
+[ext_resource type="PackedScene" path="res://scenes/entrance_door.tscn" id="16_entrance"]
+[ext_resource type="PackedScene" path="res://scenes/npcs/rap_dawg.tscn" id="17_rap_dawg"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.25, 0.2, 0.42, 1)
@@ -118,6 +120,17 @@ rotation = Vector3(0, 1.5708, 0)
 [node name="LampSideEast" parent="." instance=ExtResource("15_lamp")]
 position = Vector3(0.2, 0, 6.5)
 rotation = Vector3(0, -1.5708, 0)
+
+[node name="GrowHouseDoor" parent="." instance=ExtResource("16_entrance")]
+position = Vector3(11, 0, -3)
+target_scene = "res://scenes/interiors/grow_house.tscn"
+target_entrance = "Street"
+
+[node name="GrowHouse" type="Marker3D" parent="." groups=["entrances"]]
+position = Vector3(11, 0, -2.2)
+
+[node name="RapDawg" parent="." instance=ExtResource("17_rap_dawg")]
+position = Vector3(5.5, 0, 1.6)
 
 [node name="SpawnDoorWest" parent="." instance=ExtResource("10_door")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -3)

@@ -56,6 +56,12 @@ func skip_hours(hours: float) -> void:
 	_notify_if_time_changed()
 
 
+## Minutes since the game started, counting the skipped night hours too.
+## Use this to timestamp things that change over time, like crops.
+func absolute_minutes() -> float:
+	return day_index * MINUTES_PER_DAY + minutes
+
+
 ## Hour of the day as a float on a 24-hour clock, 0 at midnight. 1:30 AM is 1.5.
 func hour_of_day() -> float:
 	return fmod(minutes, MINUTES_PER_DAY) / 60.0

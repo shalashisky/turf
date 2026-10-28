@@ -1,3 +1,4 @@
+class_name CameraRig
 extends Node3D
 ## Fixed-angle follow camera. The child Camera3D sets the pitch and distance;
 ## this rig only follows the target. Its yaw drives camera-relative movement.
@@ -12,6 +13,11 @@ extends Node3D
 
 
 func _ready() -> void:
+	snap_to_target()
+
+
+## Jump straight to the target, for teleports and scene changes.
+func snap_to_target() -> void:
 	if target:
 		global_position = target.global_position
 

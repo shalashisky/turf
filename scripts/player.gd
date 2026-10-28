@@ -4,7 +4,7 @@ extends Citizen
 
 enum AimMode { MOVE, STICK, MOUSE }
 
-@export var camera_rig: Node3D
+@export var camera_rig: CameraRig
 
 @export_group("Aiming")
 @export var stick_aim_deadzone := 0.3
@@ -21,6 +21,11 @@ var _mouse_idle_time := 0.0
 var _aim_hold_time := 0.0
 
 @onready var _aim_pivot: Node3D = $AimPivot
+
+
+func _ready() -> void:
+	super()
+	add_to_group("player")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -48,6 +53,8 @@ func attack() -> bool:
 
 
 func _choose_move_direction(_delta: float) -> Vector3:
+	if Dialogue.blocks_input():
+		return Vector3.ZERO
 	if Input.is_action_just_pressed("jump"):
 		request_jump()
 	elif Input.is_action_just_released("jump"):
@@ -57,8 +64,24 @@ func _choose_move_direction(_delta: float) -> Vector3:
 
 func _choose_facing(move_dir: Vector3, delta: float) -> void:
 	_update_aim(move_dir, delta)
+	if Dialogue.blocks_input():
+		return
 	if Input.is_action_just_pressed("attack"):
 		attack()
+	if Input.is_action_just_pressed("interact"):
+		_interact_with_nearest()
+
+
+func _interact_with_nearest() -> void:
+	var nearest: Interactable = null
+	var nearest_distance := INF
+	for thing: Interactable in get_tree().get_nodes_in_group("interactables"):
+		var distance := global_position.distance_to(thing.global_position)
+		if thing.can_interact(self) and distance < nearest_distance:
+			nearest = thing
+			nearest_distance = distance
+	if nearest:
+		nearest.interact(self)
 
 
 func _camera_relative(input: Vector2) -> Vector3:

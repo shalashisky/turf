@@ -72,6 +72,15 @@ func center() -> Vector3:
 	return Vector3(middle.x, 0.0, middle.y)
 
 
+## The turf `point` is in, if any.
+static func at(point: Vector3) -> Territory:
+	var tree := Engine.get_main_loop() as SceneTree
+	for turf: Territory in tree.get_nodes_in_group("territories"):
+		if turf.contains(point):
+			return turf
+	return null
+
+
 ## A random walkable spot inside the turf.
 func random_spot() -> Vector3:
 	return _spots.pick_random() if not _spots.is_empty() else center()
@@ -153,9 +162,10 @@ func _process(delta: float) -> void:
 
 
 ## Whether this turf's gang needs people out on the street.
+## Gangs keep people on their turf: the player's crew too, once there's turf
+## to hold.
 func _populated() -> bool:
-	var gang := owner_faction()
-	return Factions.is_gang(gang) and gang != Factions.PLAYER
+	return Factions.is_gang(owner_faction())
 
 
 func _living_members() -> Array[GangMember]:

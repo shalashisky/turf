@@ -1,6 +1,7 @@
 extends Node
 ## Game state that has to outlive scene changes and streamed-out chunks:
-## crops, inventory, money, reputation with neighbors, turf, and so on. Autoloaded as WorldState. Saving and loading
+## crops, money, reputation with neighbors, turf, and so on. What the player
+## carries lives in the Inventory hotbar; the item functions here go to it. Autoloaded as WorldState. Saving and loading
 ## will serialize what's in here.
 ##
 ## Crops are stored as timestamps, not ticked every frame, so they keep
@@ -20,6 +21,11 @@ const GROW_MINUTES := 2.0 * 24.0 * 60.0
 const NUTRIENT_MINUTES := 24.0 * 60.0
 ## Buds per harvest.
 const HARVEST_YIELD := Vector2i(3, 6)
+## A bag of weed sells for about this, give or take the day's price swing.
+const WEED_BASE_PRICE := 22
+const WEED_PRICE_SWING := Vector2(0.7, 1.5)
+## Selling on a rival gang's turf pays this much more.
+const RIVAL_TURF_MARKUP := 1.3
 const MAX_ENERGY := 100.0
 ## Energy each action costs.
 const ATTACK_ENERGY := 1.0
@@ -32,8 +38,6 @@ const REPUTATION_RANGE := Vector2i(-250, 1000)
 
 enum TrayState { EMPTY, GROWING, READY }
 
-## What the player is carrying, by item id. Starts with a few seeds.
-var inventory := {"weed_seed": 3}
 var money := 250
 ## Spent on attacking and tending plants; refilled by sleeping.
 var energy := MAX_ENERGY
@@ -52,12 +56,30 @@ var _trays := {}
 
 
 func item_count(item: String) -> int:
-	return inventory.get(item, 0)
+	return Inventory.count(item)
 
 
-func add_item(item: String, count: int) -> void:
-	inventory[item] = maxi(item_count(item) + count, 0)
-	inventory_changed.emit()
+## Gives the player `count` of `item`, or takes them away if it's negative.
+## False if there's no room for them, or not that many to take.
+func add_item(item: String, count: int) -> bool:
+	if count < 0:
+		return Inventory.remove_item(item, -count)
+	return Inventory.add_item(item, count)
+
+
+## What a bag of weed sells for today. It changes from day to day, the same
+## for everyone on a given day.
+func weed_price() -> int:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(GameClock.day_index * 7919 + 13)
+	return roundi(WEED_BASE_PRICE * rng.randf_range(WEED_PRICE_SWING.x, WEED_PRICE_SWING.y))
+
+
+## What a bag sells for at `point`: more on a rival gang's turf, for the risk.
+func weed_price_at(point: Vector3) -> int:
+	var turf := Territory.at(point)
+	var rival := turf != null and turf.owner_faction() != Factions.PLAYER
+	return roundi(weed_price() * (RIVAL_TURF_MARKUP if rival else 1.0))
 
 
 func use_energy(amount: float) -> void:
@@ -103,8 +125,9 @@ func item_name(item: String) -> String:
 ## Items the player has at least one of.
 func held_items() -> Array[String]:
 	var held: Array[String] = []
-	for item: String in inventory:
-		if inventory[item] > 0:
+	for i in Inventory.SLOTS:
+		var item := Inventory.item_in(i)
+		if item != "" and item not in held:
 			held.append(item)
 	return held
 

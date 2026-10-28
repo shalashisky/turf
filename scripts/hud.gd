@@ -19,15 +19,6 @@ func _process(_delta: float) -> void:
 		+ "[ / ]: skip time back / ahead (debug)\n" \
 		+ "R: toggle rain (debug)\n" \
 		+ "Esc / P / Start: pause, with the full map\n" \
-		+ "Aim mode: %s\n" % player.aim_mode_name() \
-		+ "Weapon: %s\n" % _weapon_text() \
-		+ "Weed: %d   Seeds: %d   $%d" % [WorldState.item_count("weed"), WorldState.item_count("weed_seed"), WorldState.money]
+		+ "1-0 / wheel / LB RB: pick from the hotbar\n" \
+		+ "Aim mode: %s" % player.aim_mode_name()
 
-
-func _weapon_text() -> String:
-	var weapon: Weapon = player.current_weapon()
-	if weapon.swing_style == Weapon.SwingStyle.SHOOT:
-		return "%s  (%d shots)" % [weapon.display_name, player.ammo]
-	if weapon.swing_style == Weapon.SwingStyle.THROW:
-		return "%s  (%d left)" % [weapon.display_name, player.ammo]
-	return weapon.display_name

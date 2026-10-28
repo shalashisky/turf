@@ -19,6 +19,7 @@ const CIVILIANS := &"civilians"
 const NEIGHBORS := &"neighbors"
 const CIA := &"cia"
 const HOMELESS := &"homeless"
+const DRUGGIES := &"druggies"
 
 ## Gangs that hold turf. The player's crew counts as one.
 const GANGS: Array[StringName] = [PLAYER, DUMMY_GANG, PANTHERS, YELLOWS]
@@ -40,10 +41,12 @@ const NAMES := {
 	NEIGHBORS: "Neighbors",
 	CIA: "CIA",
 	HOMELESS: "Homeless",
+	DRUGGIES: "Druggies",
 }
 
 ## Gang member scenes, for gangs that hold turf and send people out of doors.
 const MEMBER_SCENES := {
+	PLAYER: "res://scenes/npcs/crew.tscn",
 	DUMMY_GANG: "res://scenes/dummy_enemy.tscn",
 	PANTHERS: "res://scenes/npcs/panther.tscn",
 	YELLOWS: "res://scenes/npcs/yellow.tscn",
@@ -59,6 +62,8 @@ const COLORS := {
 
 ## How long the police stay after the player, in seconds since the last offense.
 const WANTED_TIME := 30.0
+## Anyone this close who can see a deal go down, sees it.
+const DEAL_WITNESS_RANGE := 14.0
 
 signal wanted_changed
 
@@ -79,6 +84,28 @@ func stance(a: StringName, b: StringName) -> Stance:
 	if POLICE in [a, b] and (is_gang(a) or is_gang(b)) and PLAYER not in [a, b]:
 		return Stance.HOSTILE
 	return Stance.NEUTRAL
+
+
+## The player just sold weed at `at`. Cops who see it make the player wanted
+## and come for them. If it's on another gang's turf and one of that gang
+## sees, they take it as a declaration of war.
+func witness_deal(seller: Citizen, at: Vector3) -> void:
+	var turf := Territory.at(at)
+	var holder: StringName = turf.owner_faction() if turf else &""
+	var gang_saw := false
+	for witness: Citizen in get_tree().get_nodes_in_group("citizens"):
+		if witness == seller or witness.is_down or not witness is Npc:
+			continue
+		if witness.global_position.distance_to(at) > DEAL_WITNESS_RANGE or not witness._can_see(at):
+			continue
+		if witness is Cop:
+			report_player_crime()
+			witness.start_fighting(seller)
+		elif witness.faction == holder and is_gang(holder) and holder != PLAYER:
+			gang_saw = true
+	if gang_saw:
+		Transition.show_message("The %s saw you dealing on their turf!" % display_name(holder))
+		get_tree().call_group("turf_wars", "start", holder)
 
 
 func is_gang(faction: StringName) -> bool:

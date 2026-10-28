@@ -19,6 +19,10 @@ cross_chance = 0.15
 pause_chance = 0.55
 move_speed = 3.2
 max_health = 50
+approach_chance = 0.2
+accept_chance = 0.6
+snitch_chance = 0.0
+pays_in_kind = true
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 position = Vector3(0, 0.65, 0)

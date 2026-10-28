@@ -35,6 +35,11 @@ func _on_used(player: Citizen) -> void:
 		if pick >= stock.size():
 			break
 		var entry: Dictionary = stock[pick]
+		var room: bool = player.wants_weapon(entry.weapon) if entry.has("weapon") \
+			else (WorldState.item_count(entry.item) > 0 or Inventory.slots.has(null))
+		if not room:
+			greeting = "Your hands are full, friend."
+			continue
 		if not WorldState.spend_money(entry.price):
 			greeting = "Come back when you've got the cash."
 			continue

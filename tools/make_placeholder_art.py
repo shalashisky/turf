@@ -9,11 +9,15 @@ panther_8dir.png: same layout, a Black Panther: a black cat in a leather jacket.
 yellow_8dir.png: same layout, a member of the Yellows.
 cia_8dir.png: same layout, a CIA agent in a black suit and sunglasses.
 homeless_1_8dir.png, homeless_2_8dir.png: same layout, long beards and beanies.
+druggie_8dir.png: same layout, a pale, strung-out druggie in a stained hoodie.
+crew_8dir.png: same layout, one of the player's own crew, in the player's red.
 rap_dawg_8dir.png: same layout, a dog in a beanie, for the Rap Dawg neighbor.
 clerk_8dir.png: same layout, a store clerk in a green apron.
 pedestrian_1_8dir.png .. pedestrian_3_8dir.png: same layout, passers-by in different outfits.
 cash.png: 14x8 dollar bill, for cash drops.
 pistol.png: 14x9 pistol pointing right, grip at the left.
+weed_bag.png: 12x12 knotted baggie of green buds, a hotbar icon.
+seed_packet.png: 10x12 paper seed packet with a leaf on it, a hotbar icon.
 molotov.png: 14x7 bottle lying neck-right, with a burning rag in the neck.
 tec9.png: 20x11 machine pistol pointing right: long receiver, perforated
   barrel shroud, and the magazine in front of the grip.
@@ -113,6 +117,22 @@ CIA = {
     "skin": (210, 170, 140, 255),
     "hair": (40, 30, 25, 255),
     "sunglasses": True,
+}
+DRUGGIE = {
+    "jacket": (105, 120, 85, 255),  # stained hoodie
+    "stripe": (85, 95, 70, 255),
+    "pants": (70, 75, 90, 255),
+    "shoes": (55, 50, 50, 255),
+    "skin": (215, 200, 180, 255),  # pale
+    "hair": (120, 100, 70, 255),
+}
+CREW = {
+    "jacket": (190, 35, 45, 255),
+    "stripe": (30, 28, 30, 255),
+    "pants": (35, 35, 42, 255),
+    "shoes": (235, 235, 235, 255),
+    "skin": (120, 80, 55, 255),
+    "hair": (200, 35, 45, 255),  # bandana
 }
 HOMELESS = [
     {"jacket": (110, 85, 60, 255), "stripe": (90, 70, 50, 255), "pants": (70, 70, 60, 255),
@@ -298,6 +318,8 @@ def main():
     for i, palette in enumerate(HOMELESS):
         write_png(art / ("homeless_%d_8dir.png" % (i + 1)), draw_sheet(palette, arrow=False))
     write_png(art / "rap_dawg_8dir.png", draw_sheet(RAP_DAWG, arrow=False))
+    write_png(art / "druggie_8dir.png", draw_sheet(DRUGGIE, arrow=False))
+    write_png(art / "crew_8dir.png", draw_sheet(CREW, arrow=False))
     write_png(art / "clerk_8dir.png", draw_sheet(CLERK, arrow=False))
     for i, palette in enumerate(PEDESTRIANS):
         write_png(art / ("pedestrian_%d_8dir.png" % (i + 1)), draw_sheet(palette, arrow=False))
@@ -305,6 +327,8 @@ def main():
     write_png(art / "pistol.png", draw_pistol())
     write_png(art / "tec9.png", draw_tec9())
     write_png(art / "molotov.png", draw_molotov())
+    write_png(art / "weed_bag.png", draw_weed_bag())
+    write_png(art / "seed_packet.png", draw_seed_packet())
     write_png(art / "nightstick.png", draw_nightstick())
     write_png(art / "cop_8dir.png", draw_sheet(COP, arrow=False))
     write_png(art / "shadow_blob.png", draw_blob(32))
@@ -432,6 +456,34 @@ def draw_pistol():
     rect(image, 3, 2, 11, 2, light)
     rect(image, 2, 5, 5, 7, grip)  # grip
     rect(image, 6, 5, 7, 5, metal)  # trigger guard
+    add_outline(image)
+    return image
+
+
+def draw_weed_bag():
+    image = new_image(12, 12)
+    plastic = (215, 225, 220, 255)
+    bud = (70, 140, 50, 255)
+    bud_light = (120, 185, 70, 255)
+    rect(image, 4, 1, 7, 2, plastic)  # knot
+    rect(image, 2, 3, 9, 10, plastic)  # bag
+    rect(image, 3, 5, 8, 9, bud)  # buds inside
+    for x, y in ((4, 6), (6, 5), (7, 8), (4, 8)):
+        image[y][x] = bud_light
+    add_outline(image)
+    return image
+
+
+def draw_seed_packet():
+    image = new_image(10, 12)
+    paper = (200, 170, 120, 255)
+    band = (150, 90, 50, 255)
+    leaf = (60, 130, 45, 255)
+    rect(image, 1, 1, 8, 10, paper)
+    rect(image, 1, 1, 8, 2, band)  # folded top
+    rect(image, 4, 4, 5, 8, leaf)  # stem and leaf
+    rect(image, 2, 5, 7, 5, leaf)
+    rect(image, 3, 4, 6, 4, leaf)
     add_outline(image)
     return image
 

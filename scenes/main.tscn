@@ -33,6 +33,7 @@
 [ext_resource type="Script" path="res://scripts/police_dispatch.gd" id="94_police"]
 [ext_resource type="PackedScene" path="res://scenes/garage.tscn" id="95_garage"]
 [ext_resource type="Script" path="res://scripts/rain.gd" id="96_rain"]
+[ext_resource type="PackedScene" path="res://scenes/npcs/druggie.tscn" id="97_druggie"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.25, 0.2, 0.42, 1)
@@ -146,6 +147,13 @@ script = ExtResource("21_pedestrians")
 scene = ExtResource("29_homeless")
 count = 3
 looks = Array[Texture2D]([ExtResource("30_homeless1"), ExtResource("31_homeless2")])
+
+[node name="Druggies" type="Node3D" parent="."]
+script = ExtResource("21_pedestrians")
+scene = ExtResource("97_druggie")
+count = 1
+looks = Array[Texture2D]([])
+check_interval = 45.0
 
 [node name="CIA" type="Node3D" parent="." unique_id=455867273]
 script = ExtResource("21_pedestrians")

@@ -33,15 +33,81 @@ func _ready() -> void:
 	super()
 	add_to_group("player")
 	died.connect(Factions.clear_wanted)
+	Inventory.selection_changed.connect(_hold_selected)
+	Inventory.changed.connect(_hold_selected)
+	_hold_selected()
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	_pick_hotbar_slot(event)
 	if event is InputEventMouseMotion:
 		aim_mode = AimMode.MOUSE
 		_mouse_idle_time = 0.0
 	elif event is InputEventJoypadMotion and aim_mode == AimMode.MOUSE and absf(event.axis_value) > 0.5:
 		# Picking up the gamepad hands aiming back to the sticks.
 		aim_mode = AimMode.MOVE
+
+
+func _pick_hotbar_slot(event: InputEvent) -> void:
+	if Dialogue.blocks_input():
+		return
+	var key := event as InputEventKey
+	if key and key.pressed and not key.echo:
+		# 1 to 9, then 0 for the tenth.
+		if key.physical_keycode >= KEY_1 and key.physical_keycode <= KEY_9:
+			Inventory.select(key.physical_keycode - KEY_1)
+		elif key.physical_keycode == KEY_0:
+			Inventory.select(9)
+	if event.is_action_pressed("hotbar_next"):
+		Inventory.select(Inventory.selected + 1)
+	elif event.is_action_pressed("hotbar_prev"):
+		Inventory.select(Inventory.selected - 1)
+
+
+## Holds whatever's in the selected hotbar slot: a weapon, or fists for an
+## empty slot or goods. Keeps the shots left in what was held.
+func _hold_selected() -> void:
+	var weapon := Inventory.weapon_in(Inventory.selected)
+	var stack: Variant = Inventory.selected_slot()
+	var shots: int = stack.ammo if weapon else 0
+	if weapon != equipped_weapon or shots != ammo:
+		hold(weapon, shots)
+
+
+## Whether the player has weed in hand, to sell.
+func is_offering_weed() -> bool:
+	return Inventory.item_in(Inventory.selected) == "weed" and not is_down and vehicle == null
+
+
+## Weapons go in the hotbar: onto a stack of the same, or into a free slot.
+## With no room, the one in hand is dropped and this takes its slot.
+func equip(weapon: Weapon, with_ammo := -1) -> void:
+	if Inventory.add_weapon(weapon, with_ammo) < 0:
+		drop_weapon()
+		var slot := Inventory.add_weapon(weapon, with_ammo)
+		if slot >= 0:
+			Inventory.select(slot)
+	_hold_selected()
+	_squash(Vector2(1.15, 0.88))
+
+
+## Room in the hotbar for it: pick it up on touch.
+func picks_up_on_touch(weapon: Weapon) -> bool:
+	return Inventory.has_room_for(weapon)
+
+
+## Takes anything there's room for, or that can swap for the weapon in hand.
+func wants_weapon(weapon: Weapon) -> bool:
+	return weapon == null or Inventory.has_room_for(weapon) \
+		or (Inventory.weapon_in(Inventory.selected) != null and not Inventory.has_weapon(weapon))
+
+
+## Drops the weapon in hand, emptying its hotbar slot.
+func drop_weapon() -> void:
+	if equipped_weapon and Inventory.weapon_in(Inventory.selected) == equipped_weapon:
+		Inventory.slots[Inventory.selected] = null
+	super()
+	Inventory.changed.emit()
 
 
 func aim_mode_name() -> String:
@@ -61,8 +127,17 @@ func attack() -> bool:
 		if target:
 			facing = _flat_offset_to(target).normalized()
 			_aim_hold_time = auto_aim_hold
+	var held := equipped_weapon
 	if not super():
 		return false
+	# Shots and throws come off the stack in the hotbar; used up, it's gone.
+	if held and Inventory.weapon_in(Inventory.selected) == held:
+		var stack: Dictionary = Inventory.selected_slot()
+		if equipped_weapon == null:
+			Inventory.set_slot(Inventory.selected, null)
+		elif stack.ammo != ammo:
+			stack.ammo = ammo
+			Inventory.changed.emit()
 	# Holding down the trigger of an automatic tires you out once per burst.
 	if not current_weapon().automatic or not _trigger_was_held:
 		WorldState.use_energy(WorldState.ATTACK_ENERGY)

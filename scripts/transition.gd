@@ -25,8 +25,6 @@ func go_to(scene_path: String, entrance: String, while_dark := Callable(), heal 
 	busy = true
 	var player := get_tree().get_first_node_in_group("player") as Citizen
 	var health := player.health if player else -1
-	var weapon := player.equipped_weapon if player else null
-	var ammo := player.ammo if player else 0
 
 	await _fade_to(1.0)
 	if while_dark.is_valid():
@@ -35,7 +33,7 @@ func go_to(scene_path: String, entrance: String, while_dark := Callable(), heal 
 	# The new scene is in place and ready after the next frame.
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_arrive(entrance, -1 if heal else health, weapon, ammo)
+	_arrive(entrance, -1 if heal else health)
 	await _fade_to(0.0)
 	busy = false
 	if not message.is_empty():
@@ -54,7 +52,8 @@ func show_message(text: String) -> void:
 	tween.tween_callback(_message.hide)
 
 
-func _arrive(entrance: String, health: int, weapon: Weapon, ammo: int) -> void:
+## The player's things come with them in the Inventory: nothing to carry over.
+func _arrive(entrance: String, health: int) -> void:
 	var player := get_tree().get_first_node_in_group("player") as Citizen
 	if player == null:
 		return
@@ -66,8 +65,6 @@ func _arrive(entrance: String, health: int, weapon: Weapon, ammo: int) -> void:
 			break
 	if health > 0:
 		player.health = health
-	if weapon:
-		player.equip(weapon, ammo)
 	if player.camera_rig:
 		player.camera_rig.snap_to_target()
 

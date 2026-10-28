@@ -36,6 +36,9 @@ const BURN_RAIN_QUENCH := 6.0
 ## round from the last, in radians.
 const PANIC_TURN_TIME := Vector2(0.2, 0.5)
 const PANIC_SWERVE := 2.4
+## Words called out (call_out()) float this high over their head, for this long.
+const SAY_HEIGHT := 2.1
+const SAY_TIME := 1.8
 ## Melee swings reach a car this far from its middle.
 const CAR_HALF_WIDTH := 1.3
 ## Beating on a car does this share of the weapon's damage.
@@ -291,6 +294,40 @@ func equip(weapon: Weapon, with_ammo := -1) -> void:
 	ammo = weapon.max_ammo if with_ammo < 0 else with_ammo
 	_weapon_angle = _weapon_rest_angle()
 	_squash(Vector2(1.15, 0.88))
+
+
+## A few words floating over their head for a moment, said out loud.
+func call_out(text: String, color := Color.WHITE) -> void:
+	var label := Label3D.new()
+	label.text = text
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.render_priority = 10
+	label.outline_render_priority = 9
+	label.font_size = 40
+	label.outline_size = 12
+	label.pixel_size = 0.005
+	label.modulate = color
+	label.position.y = SAY_HEIGHT
+	add_child(label)
+	var tween := label.create_tween()
+	tween.tween_property(label, "position:y", SAY_HEIGHT + 0.5, SAY_TIME)
+	tween.parallel().tween_property(label, "modulate:a", 0.0, SAY_TIME * 0.4).set_delay(SAY_TIME * 0.6)
+	tween.tween_callback(label.queue_free)
+
+
+## Takes `weapon` in hand (or fists, if null) with `with_ammo` shots, with
+## nothing dropped: switching to it from wherever it was kept.
+func hold(weapon: Weapon, with_ammo := 0) -> void:
+	equipped_weapon = weapon
+	ammo = with_ammo
+	_weapon_angle = _weapon_rest_angle()
+
+
+## Whether walking into a pickup of `weapon` grabs it. Only with empty hands,
+## unless overridden.
+func picks_up_on_touch(_weapon: Weapon) -> bool:
+	return equipped_weapon == null
 
 
 ## Leaves the held weapon floating at our feet as a pickup, and goes back to fists.

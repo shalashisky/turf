@@ -1,8 +1,9 @@
 class_name WeaponPickup
 extends Area3D
-## A weapon floating in mid-air under a green arrow. Someone empty-handed who
-## can carry weapons (and wants this one, see Citizen.wants_weapon()) grabs it
-## just by touching it. The player, already holding something, gets a
+## A weapon floating in mid-air under a green arrow. Someone who can carry
+## weapons (and wants this one, see Citizen.wants_weapon()) grabs it just by
+## touching it, if they've a free hand (Citizen.picks_up_on_touch()): for
+## the player, room in the hotbar. Otherwise the player gets a
 ## "[E] Swap for ..." prompt instead. Citizens drop these when they swap
 ## weapons or die (see Citizen.drop_weapon()).
 
@@ -132,15 +133,15 @@ func _physics_process(_delta: float) -> void:
 		_ignored = null
 
 
-## Only empty hands grab a weapon on touch.
+## Only free hands grab a weapon on touch.
 func _on_body_entered(body: Node3D) -> void:
-	if body is Citizen and body.equipped_weapon == null:
+	if body is Citizen and body.picks_up_on_touch(weapon):
 		try_give_to(body)
 
 
 func _update_swap_prompt() -> void:
 	var player := get_tree().get_first_node_in_group("player") as Citizen
-	var swapping := player != null and player.equipped_weapon != null and is_available_to(player)
+	var swapping := player != null and not player.picks_up_on_touch(weapon) and is_available_to(player)
 	var prompt := "Swap for %s" % weapon.display_name if swapping else ""
 	if _swap.prompt != prompt:
 		_swap.prompt = prompt

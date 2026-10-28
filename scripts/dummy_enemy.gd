@@ -9,6 +9,19 @@ extends Npc
 ## around while fighting goes and grabs it first. Won't walk off ledges by itself, but can
 ## be shoved off them, water included. The player attacking one sets off a
 ## turf war over that gang's turf.
+##
+## The player's own crew are gang members too. Give one a bag of weed and
+## they follow the player (up to MAX_FOLLOWERS at once), fighting whoever the
+## player fights. They each carry one weapon, which the player can swap for
+## the one in hand, give them, or take; and send them home again.
+
+## Most of the player's crew following them at once.
+const MAX_FOLLOWERS := 4
+## Followers keep about this close to the player, and run to catch up.
+const FOLLOW_DISTANCE := 2.5
+const CATCH_UP_DISTANCE := 6.0
+## The crew's prompt shows with the player this close.
+const CREW_PROMPT_RANGE := 2.2
 
 ## How often to look around for weapons, in seconds. Saves raycasts.
 const WEAPON_SCAN_INTERVAL := 0.25
@@ -51,6 +64,9 @@ const ROUT_FADE_TIME := 1.0
 
 ## Their turf's been lost, and they're running for it (rout()).
 var routed := false
+## Who they're following, for the player's crew.
+var following: Citizen
+var _crew_prompt: Interactable
 var _rout_left := 0.0
 var _fading := false
 
@@ -117,6 +133,88 @@ func _run_off(delta: float) -> Vector3:
 	return _direction_away_from(player.global_position) if player else Vector3.ZERO
 
 
+## Sticks with the player, fighting whoever they're up against.
+func _follow(delta: float) -> Vector3:
+	if _still_fighting() or _scan_for_hostiles(delta):
+		return _fight(delta)
+	var distance := global_position.distance_to(following.global_position)
+	if distance <= FOLLOW_DISTANCE:
+		return Vector3.ZERO
+	var pace := 1.0 if distance > CATCH_UP_DISTANCE else minf(wander_speed * 1.6 / move_speed, 1.0)
+	return _steer_toward(following.global_position) * pace
+
+
+## What the player can do with them right now, by what they've got in hand:
+## weed to recruit them, a weapon to swap or give, an empty hand to take
+## theirs, or anything else to send a follower home.
+func _crew_action() -> String:
+	var held := Inventory.weapon_in(Inventory.selected)
+	if Inventory.item_in(Inventory.selected) == "weed" and following == null:
+		return "Give weed (roll with you)"
+	if held:
+		return "Swap for %s" % equipped_weapon.display_name if equipped_weapon else "Give %s" % held.display_name
+	if Inventory.selected_slot() == null and equipped_weapon:
+		return "Take %s" % equipped_weapon.display_name
+	if following:
+		return "Send home"
+	return ""
+
+
+func _update_crew_prompt() -> void:
+	var player := get_tree().get_first_node_in_group("player") as Citizen
+	var near := player != null and player.vehicle == null and not is_down \
+		and global_position.distance_to(player.global_position) < CREW_PROMPT_RANGE + 2.0
+	var prompt := _crew_action() if near else ""
+	if _crew_prompt == null:
+		if prompt == "":
+			return
+		_crew_prompt = Interactable.new()
+		_crew_prompt.collision_layer = 0
+		_crew_prompt.collision_mask = 2
+		_crew_prompt.prompt_height = 2.0
+		var shape := CollisionShape3D.new()
+		var sphere := SphereShape3D.new()
+		sphere.radius = CREW_PROMPT_RANGE
+		shape.shape = sphere
+		shape.position.y = 0.8
+		_crew_prompt.add_child(shape)
+		add_child(_crew_prompt)
+		_crew_prompt.interacted.connect(_on_crew_prompt)
+	if _crew_prompt.prompt != prompt:
+		_crew_prompt.prompt = prompt
+
+
+func _on_crew_prompt(player: Citizen) -> void:
+	var action := _crew_action()
+	var slot := Inventory.selected
+	if action.begins_with("Give weed"):
+		var followers := 0
+		for member in get_tree().get_nodes_in_group(Factions.PLAYER):
+			if member is GangMember and member.following:
+				followers += 1
+		if followers >= MAX_FOLLOWERS:
+			call_out("You got enough backup already.")
+			return
+		if WorldState.add_item("weed", -1):
+			following = player
+			_raid_left = 0.0
+			stop_fighting()
+			call_out("I got you.", Color(0.55, 1.0, 0.45))
+	elif action.begins_with("Swap") or action.begins_with("Give"):
+		var stack: Dictionary = Inventory.selected_slot()
+		var theirs := equipped_weapon
+		var their_ammo := ammo
+		hold(stack.weapon, stack.ammo)
+		Inventory.set_slot(slot, {"weapon": theirs, "ammo": their_ammo} if theirs else null)
+		call_out("Nice.")
+	elif action.begins_with("Take"):
+		if Inventory.add_weapon(equipped_weapon, ammo) >= 0:
+			hold(null)
+	elif action == "Send home":
+		following = null
+		call_out("Later.")
+
+
 ## Walk straight along `direction` for `duration` seconds before the AI takes over.
 func walk_out(direction: Vector3, duration: float) -> void:
 	_walk_out_dir = direction.normalized()
@@ -147,13 +245,26 @@ func rout() -> void:
 
 
 func notice_fight(attacker: Citizen, victim: Citizen) -> void:
-	if not routed:
-		super(attacker, victim)
+	if routed:
+		return
+	# Whoever the player goes after, their followers go after too.
+	if following and attacker == following and not victim.is_down and not _is_ally(victim) \
+			and global_position.distance_to(victim.global_position) <= defend_range:
+		if not _still_fighting():
+			start_fighting(victim)
+		return
+	super(attacker, victim)
 
 
 func _choose_move_direction(delta: float) -> Vector3:
 	if routed:
 		return _run_off(delta)
+	if faction == Factions.PLAYER:
+		_update_crew_prompt()
+	if following and not is_instance_valid(following):
+		following = null
+	if following:
+		return _follow(delta)
 	if _walk_out_left > 0.0:
 		_walk_out_left -= delta
 		return _walk_out_dir * minf(wander_speed / move_speed, 1.0)

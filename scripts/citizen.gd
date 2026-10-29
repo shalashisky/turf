@@ -39,6 +39,8 @@ const PANIC_SWERVE := 2.4
 ## Words called out (call_out()) float this high over their head, for this long.
 const SAY_HEIGHT := 2.1
 const SAY_TIME := 1.8
+## Hits are played this much louder than other sounds, so they land.
+const HIT_VOLUME := 2.0
 ## Melee swings reach a car this far from its middle.
 const CAR_HALF_WIDTH := 1.3
 ## Beating on a car does this share of the weapon's damage.
@@ -383,6 +385,7 @@ func attack() -> bool:
 	if weapon.swing_style == Weapon.SwingStyle.THROW:
 		_throw(weapon)
 		return true
+	Sound.play_at(weapon.sound, global_position + Vector3.UP, -3.0)
 	var half_arc := deg_to_rad(weapon.arc_degrees) * 0.5
 	for other: Citizen in get_tree().get_nodes_in_group("citizens"):
 		if other == self or _is_ally(other):
@@ -394,12 +397,15 @@ func attack() -> bool:
 	for car: Vehicle in get_tree().get_nodes_in_group("vehicles"):
 		var to_car := _flat_offset_to(car)
 		if to_car.length() - CAR_HALF_WIDTH <= weapon.reach and facing.angle_to(to_car) <= half_arc + 0.4:
+			if not car.is_wrecked:
+				Sound.play_at(&"car_hit", car.global_position + Vector3.UP, HIT_VOLUME)
 			car.damage(weapon.damage * CAR_MELEE_FACTOR, self)
 	return true
 
 
 func _shoot(weapon: Weapon) -> void:
 	ammo -= 1
+	Sound.play_at(weapon.sound, global_position + Vector3.UP, 0.0, 0.05)
 	var spread := deg_to_rad(randf_range(-weapon.spread_degrees, weapon.spread_degrees))
 	var direction := facing.rotated(Vector3.UP, spread)
 	var muzzle := global_position + Vector3.UP * HAND_HEIGHT + facing * 0.55
@@ -425,6 +431,7 @@ func _shoot(weapon: Weapon) -> void:
 ## ahead. When the last one's gone, it's back to fists.
 func _throw(weapon: Weapon) -> void:
 	ammo -= 1
+	Sound.play_at(weapon.sound, global_position + Vector3.UP)
 	var hand := global_position + Vector3.UP * (HAND_HEIGHT + 0.4) + facing * 0.4
 	var landing := global_position + facing * _throw_distance(weapon)
 	var thrown: Node3D = weapon.thrown_scene.instantiate()
@@ -557,6 +564,8 @@ func is_hostile_to(other: Citizen) -> bool:
 ## Takes the weapon's damage and gets knocked back away from the attacker,
 ## harder for heavier weapons.
 func hit(attacker: Citizen, weapon: Weapon) -> void:
+	if not is_down:
+		Sound.play_at(&"block" if is_blocking else weapon.hit_sound, global_position + Vector3.UP, HIT_VOLUME)
 	_take_hit(attacker, weapon.damage, weapon.knockback, weapon.knockback_lift)
 
 
@@ -565,6 +574,7 @@ func contact_hit(attacker: Citizen, weapon: Weapon) -> void:
 	if _contact_cooldown_left > 0.0 or attacker._is_ally(self):
 		return
 	_contact_cooldown_left = CONTACT_COOLDOWN
+	Sound.play_at(weapon.hit_sound, global_position + Vector3.UP, HIT_VOLUME)
 	_take_hit(attacker, weapon.contact_damage, weapon.contact_knockback, 0.0)
 
 
@@ -632,6 +642,7 @@ func caught_in_explosion(center: Vector3, attacker: Citizen, amount: int) -> voi
 func struck_by_vehicle(car_velocity: Vector3, driver: Citizen = null) -> void:
 	var flat := Vector3(car_velocity.x, 0.0, car_velocity.z)
 	var speed := flat.length()
+	Sound.play_at(&"car_thump", global_position + Vector3.UP, HIT_VOLUME + 2.0)
 	_take_hit(driver, roundi(speed * VEHICLE_DAMAGE_PER_SPEED), speed * 0.9, 4.0, flat.normalized())
 
 
@@ -766,6 +777,7 @@ func _fall_down(fall_direction: Vector3) -> void:
 
 
 func _on_body_hit_ground() -> void:
+	Sound.play_at(&"body_fall", global_position, -2.0)
 	if not is_swimming:
 		_spawn_effect(DUST_PUFF, global_position + _corpse_offset() * 0.6 + Vector3.UP * 0.05)
 

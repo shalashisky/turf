@@ -21,3 +21,5 @@ cooldown = 0.9
 move_speed_factor = 1.0
 max_ammo = 3
 thrown_scene = ExtResource("3_thrown")
+sound = &"throw"
+hit_sound = &"punch"

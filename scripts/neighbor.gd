@@ -9,8 +9,20 @@ extends Npc
 ## once things calm down. Get their reputation up to ally_reputation and
 ## they'll fight on your side instead.
 ##
+## By day they wander the sidewalks around their spot, stopping now and then.
+## They keep regular hours: from 6pm to 6am they're indoors, behind their
+## own door (the SafeDoor nearest their spot). They show on the minimap by
+## their initial while they're out.
+##
 ## Each neighbor writes its conversation in converse(), using say() and
 ## choose(). give_present() runs the gift exchange they all share.
+
+## Wandering to somewhere that's taking longer than this, in seconds, they
+## give up and pick somewhere else.
+const WANDER_GIVE_UP := 15.0
+## In for the night from this hour, out again at that one.
+const NIGHT_FROM := 18.0
+const NIGHT_UNTIL := 6.0
 
 @export var npc_id := "neighbor"
 @export var display_name := "Neighbor"
@@ -32,8 +44,16 @@ extends Npc
 @export var ally_reputation := 100
 ## How long they keep running after the last blow they noticed.
 @export var flee_time := 5.0
-## Walking speed when strolling back home. move_speed is their running speed.
+## Walking speed when strolling around. move_speed is their running speed.
 @export var stroll_speed := 1.5
+
+@export_group("Wandering")
+## They wander the sidewalks this far around their spot.
+@export var wander_radius := 18.0
+## Seconds they stop for at each place they wander to.
+@export var pause_time := Vector2(2.0, 6.0)
+## The color of their blip on the minimap.
+@export var map_color := Color(0.75, 0.55, 1.0)
 
 ## Where they go back to once things calm down.
 var _home: Vector3
@@ -41,6 +61,14 @@ var _flee_from := Vector3.ZERO
 var _flee_left := 0.0
 ## The safe door they're hiding behind, if any.
 var _shelter: SafeDoor
+## In for the night, rather than hiding from a fight.
+var in_for_the_night := false
+var _wander_spots: Array[Vector3] = []
+var _wander_to := Vector3.INF
+var _wander_time := 0.0
+var _pause_left := 0.0
+## Stops to talk to the player.
+var _chatting := false
 var _hidden_groups: Array[StringName] = []
 var _hidden_collision_layer := 0
 
@@ -52,10 +80,49 @@ func _ready() -> void:
 	_home = global_position
 	facing = start_facing
 	_talk.interacted.connect(_on_talk)
+	# Every neighbor, indoors or out (the faction groups drop them indoors).
+	add_to_group("all_neighbors")
+	var grid := get_tree().get_first_node_in_group("city_grid") as CityGrid
+	if grid:
+		var around := Rect2(_home.x - wander_radius, _home.z - wander_radius, wander_radius * 2.0, wander_radius * 2.0)
+		_wander_spots = grid.open_ground_in(around, [CityGrid.SIDEWALK])
+	_pause_left = randf_range(pause_time.x, pause_time.y)
+	var blip := MapBlip.new()
+	blip.label = display_name.left(1)
+	blip.color = map_color
+	add_child(blip)
 	# The AI that normally refreshes the prompt doesn't run while they're down.
 	for change in [knocked_out, got_up, died]:
 		change.connect(_update_prompt)
 	_update_prompt()
+	# Already night out: they're home.
+	if is_night():
+		var door := own_door()
+		if door:
+			_turn_in.call_deferred(door)
+
+
+## Whether it's past their bedtime: from NIGHT_FROM until NIGHT_UNTIL.
+static func is_night() -> bool:
+	var hour := GameClock.hour_of_day()
+	return hour >= NIGHT_FROM or hour < NIGHT_UNTIL
+
+
+## Their own front door: the safe door nearest where they hang out.
+func own_door() -> SafeDoor:
+	var best: SafeDoor = null
+	var best_distance := INF
+	for door: SafeDoor in get_tree().get_nodes_in_group("safe_doors"):
+		var distance := _home.distance_to(door.global_position)
+		if distance < best_distance:
+			best = door
+			best_distance = distance
+	return best
+
+
+func _turn_in(door: SafeDoor) -> void:
+	in_for_the_night = true
+	door.shelter(self)
 
 
 func is_allied() -> bool:
@@ -114,6 +181,15 @@ func _choose_move_direction(delta: float) -> Vector3:
 			start_fighting(next)
 	if target:
 		return _fight(delta)
+	# Bedtime: home, and inside.
+	if is_night() and _flee_left <= 0.0:
+		var door := own_door()
+		if door:
+			if global_position.distance_to(door.doorstep()) < 0.8:
+				# Deferred, like ducking inside from a fight.
+				_turn_in.call_deferred(door)
+				return Vector3.ZERO
+			return _steer_toward(door.doorstep()) * minf(stroll_speed / move_speed, 1.0)
 	if _flee_left > 0.0:
 		var door := _nearest_safe_door()
 		if door:
@@ -127,12 +203,37 @@ func _choose_move_direction(delta: float) -> Vector3:
 			return _steer_toward(door.doorstep())
 		_flee_left -= delta
 		return _flee_direction()
-	# Calm again: stroll back home.
-	var to_home := _home - global_position
-	to_home.y = 0.0
-	if to_home.length() > 0.6:
-		return _steer_toward(_home) * minf(stroll_speed / move_speed, 1.0)
-	return Vector3.ZERO
+	if _chatting:
+		return Vector3.ZERO
+	return _wander(delta)
+
+
+## Strolls from place to place on the sidewalks around home, stopping a
+## while at each. Gives up on a place that's taking too long to reach.
+func _wander(delta: float) -> Vector3:
+	if _wander_to == Vector3.INF:
+		_pause_left -= delta
+		if _pause_left > 0.0:
+			return Vector3.ZERO
+		_wander_to = _pick_wander_spot()
+		_wander_time = 0.0
+	_wander_time += delta
+	if global_position.distance_to(_wander_to) < 0.6 or _wander_time > WANDER_GIVE_UP:
+		_wander_to = Vector3.INF
+		_pause_left = randf_range(pause_time.x, pause_time.y)
+		return Vector3.ZERO
+	return _steer_toward(_wander_to) * minf(stroll_speed / move_speed, 1.0)
+
+
+## A sidewalk spot near home they can see from here, so it's a straight walk.
+func _pick_wander_spot() -> Vector3:
+	for attempt in 8:
+		if _wander_spots.is_empty():
+			break
+		var spot: Vector3 = _wander_spots.pick_random()
+		if _can_see(spot):
+			return spot
+	return _home
 
 
 ## An enemy nearby that's fighting the player or one of their allies.
@@ -260,7 +361,9 @@ func _on_talk(player: Citizen) -> void:
 		return
 	face_toward(player.global_position)
 	player.face_toward(global_position)
+	_chatting = true
 	await converse(player)
+	_chatting = false
 	Dialogue.close()
 
 

@@ -18,3 +18,5 @@ swing_time = 0.15
 cooldown = 0.28
 move_speed_factor = 1.12
 contact_damage = 4
+sound = &"swing"
+hit_sound = &"knife_hit"

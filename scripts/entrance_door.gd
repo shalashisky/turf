@@ -13,7 +13,7 @@ const ARMING_DELAY := 0.75
 ## The player has to be this close to the door's face, this near its middle,
 ## and walking into it at least this fast.
 const REACH := 0.6
-const HALF_WIDTH := 0.55
+const HALF_WIDTH := 0.75
 const MIN_INWARD_SPEED := 0.8
 
 @export_file("*.tscn") var target_scene := ""
@@ -51,6 +51,7 @@ func _walking_in(body: Node3D) -> bool:
 
 
 func _go_through() -> void:
+	Sound.play(&"door")
 	create_tween().tween_property(_hinge, "rotation:y", deg_to_rad(-open_angle_degrees), 0.2) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	Transition.go_to(target_scene, target_entrance)

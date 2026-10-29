@@ -20,8 +20,19 @@ const PATH_HALF_WIDTH := 1.2
 const PATIENCE := 4.0
 ## How fast it creeps on when it's lost patience.
 const CREEP_SPEED := 2.0
+## Stopped behind something this long, it honks.
+const HONK_AFTER := 1.5
 ## Stopped behind a car that isn't going anywhere this long, it goes around.
 const OVERTAKE_AFTER := 1.0
+## With where it's headed this far round behind it (radians), it backs up,
+## swinging round as it goes, until it's within REVERSE_UNTIL; then it drives
+## on forward. Like backing out of a garage.
+const REVERSE_FROM := 1.75
+const REVERSE_UNTIL := 1.0
+const REVERSE_SPEED := 3.0
+## Backing up, it goes straight this far before swinging round: out of a
+## garage or a tight spot before turning.
+const REVERSE_STRAIGHT := 4.5
 ## Stuck against something with nothing in the way ahead this long (a wall,
 ## a car side-on), it backs up for BACK_UP_TIME and tries again.
 const STUCK_TIME := 1.2
@@ -55,6 +66,10 @@ var _overtaking: Vehicle
 var _waited_for_parked := 0.0
 var _stuck := 0.0
 var _backing_up := 0.0
+var _reversing := false
+## Where it started backing up.
+var _reverse_from := Vector3.ZERO
+var _pulling_forward := 0.0
 
 
 ## Drives `car` along the street through `street_point` in `direction` (one
@@ -94,7 +109,14 @@ func tick(delta: float) -> void:
 	wanted.y = 0.0
 	if wanted.length() > 0.1:
 		var angle := _car.heading.signed_angle_to(wanted.normalized(), Vector3.UP)
-		_car.heading = _car.heading.rotated(Vector3.UP, clampf(angle, -steering * delta, steering * delta))
+		if absf(angle) > REVERSE_FROM and not _reversing and _pulling_forward <= 0.0:
+			_reversing = true
+			_reverse_from = position
+		elif absf(angle) < REVERSE_UNTIL:
+			_reversing = false
+		var straightening := _reversing and position.distance_to(_reverse_from) < REVERSE_STRAIGHT
+		if not straightening:
+			_car.heading = _car.heading.rotated(Vector3.UP, clampf(angle, -1.0, 1.0) * _car.turn_rate(steering) * delta)
 
 	var target_speed := flee_speed if fleeing else cruise_speed
 	if _next_turn != Vector3.ZERO and not fleeing and (_next_crossing - position).dot(_direction) < 12.0:
@@ -111,11 +133,28 @@ func tick(delta: float) -> void:
 	if _backing_up > 0.0:
 		_backing_up -= delta
 		target_speed = -2.5
+	elif _pulling_forward > 0.0:
+		_pulling_forward -= delta
+		target_speed = 2.5
+	elif _reversing:
+		target_speed = -REVERSE_SPEED
+		# Backed into something: pull forward a little and try again.
+		if absf(_car.speed) < 0.3:
+			_stuck += delta
+			if _stuck > STUCK_TIME:
+				_stuck = 0.0
+				_reversing = false
+				_pulling_forward = BACK_UP_TIME
+		else:
+			_stuck = 0.0
 	var rate := acceleration if target_speed > _car.speed else braking
 	_car.speed = move_toward(_car.speed, target_speed, rate * delta)
 
 	# Waiting too long behind something: push on through for a bit.
 	if _car.speed < 0.5 and target_speed < 0.5:
+		# Lean on the horn, once, when it's been a while.
+		if _waited < HONK_AFTER and _waited + delta >= HONK_AFTER:
+			Sound.play_at(&"horn", _car.global_position + Vector3.UP, -3.0, 0.1)
 		_waited += delta
 		if _waited > PATIENCE:
 			_pushing_through = 1.5
@@ -187,8 +226,9 @@ func _join_nearest_street() -> void:
 	for street in _grid.streets() if _grid else []:
 		var along := Vector3.RIGHT if street.along_x else Vector3.BACK
 		var away: float = absf((position.z if street.along_x else position.x) - street.line)
-		# Prefer streets the car is already pointed along.
-		away += (1.0 - absf(heading.dot(along))) * 6.0
+		# Prefer streets the car is already pointed along, a little: it can
+		# always back out and turn.
+		away += (1.0 - absf(heading.dot(along))) * 2.0
 		if away < best:
 			best = away
 			_direction = along if heading.dot(along) >= 0.0 else -along

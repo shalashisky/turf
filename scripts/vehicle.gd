@@ -35,6 +35,8 @@ const WRECK_TIME := 8.0
 ## Interact presses this soon after getting in don't count, so the press that
 ## opened the door doesn't get you straight back out.
 const DOOR_GRACE_MS := 300
+## How loud engines idle, in dB.
+const ENGINE_VOLUME := -16.0
 ## After throwing the driver out, the hijacker gets in this much later.
 const HIJACK_DELAY := 0.45
 ## A hijacker who's wandered this far off by then doesn't get in after all.
@@ -101,6 +103,7 @@ var _smoke: GPUParticles3D
 var _health_label: Label3D
 var _paint_material: StandardMaterial3D
 var _door: Interactable
+var _engine: AudioStreamPlayer3D
 var _grid: CityGrid
 var _got_in_at := 0
 ## Someone's throwing the driver out, about to get in.
@@ -131,6 +134,7 @@ func _ready() -> void:
 		_door = _build_door()
 	_door.interacted.connect(hijack)
 	_refresh_door()
+	_engine = Sound.loop_on(self, &"engine_loop", ENGINE_VOLUME)
 	reset_physics_interpolation()
 
 
@@ -152,6 +156,22 @@ func _physics_process(delta: float) -> void:
 		_ai_drive(delta)
 	if driver:
 		driver.global_position = global_position
+	_update_engine()
+
+
+## The engine runs while someone's at the wheel, revving with speed. The
+## player's own is louder.
+func _update_engine() -> void:
+	var running := (driver != null or occupied or street_driver != null) and not is_wrecked and visible
+	if running != _engine.playing:
+		if running:
+			_engine.play()
+		else:
+			_engine.stop()
+	if running:
+		_engine.pitch_scale = 0.7 + absf(speed) / 16.0 * 1.3
+		var players_car := driver != null and driver.is_in_group("player")
+		_engine.volume_db = ENGINE_VOLUME + (6.0 if players_car else 0.0)
 
 
 ## `who` takes the wheel. Whoever was driving is thrown out first, and takes
@@ -286,6 +306,13 @@ func explode() -> void:
 	tween.tween_callback(_on_wreck_faded)
 
 
+## How fast it can turn right now, in radians per second, at full lock
+## `steering`: a car only turns while it's moving, more the faster it goes,
+## up to full_steering_speed. No spinning on the spot.
+func turn_rate(steering_rate: float) -> float:
+	return steering_rate * clampf(absf(speed) / full_steering_speed, 0.0, 1.0)
+
+
 ## Driving, when it's the player at the wheel.
 func _player_drive(delta: float) -> void:
 	var throttle := 0.0
@@ -400,6 +427,7 @@ func _drive_step(delta: float) -> void:
 		var lamp := (other as Node).get_parent()
 		if lamp and lamp.has_method("knock_over"):
 			if absf(speed_before) >= knock_over_speed:
+				Sound.play_at(&"clang", lamp.global_position + Vector3.UP, -2.0)
 				lamp.knock_over(heading * speed_before)
 				speed = speed_before * 0.8
 				damage(LAMP_DAMAGE)
@@ -426,6 +454,8 @@ func _crash(other: Object, closing_speed: float) -> void:
 	if amount <= 0.0:
 		return
 	var car := other as Vehicle
+	if not (car and _crash_cooldowns.has(car)):
+		Sound.play_at(&"crash", global_position + Vector3.UP, minf(amount / 10.0 - 4.0, 4.0))
 	if car:
 		if _crash_cooldowns.has(car):
 			return

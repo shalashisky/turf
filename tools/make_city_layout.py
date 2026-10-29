@@ -24,10 +24,11 @@ WIDTH, HEIGHT = 256, 192
 STREET_EVERY = (24, 18)
 STREET_FIRST = (5, 4)
 ROAD_WIDTH = 5
-# The player's garage, beside the shop: a lot cut out of the block for the
-# garage building (scenes/garage.tscn) to stand on, opening onto the main
-# street. World tile coordinates (x0, z0, x1, z1), inclusive, after widening.
-GARAGE_LOT = (16, -10, 19, -5)
+# The player's garage, beside the house in the top-left corner of town: a lot
+# cut out of the block for the garage building (scenes/garage.tscn) to stand
+# on, opening onto the street. World tile coordinates (x0, z0, x1, z1),
+# inclusive, after widening.
+GARAGE_LOT = (-97, -90, -94, -85)
 
 
 def widened_lines():

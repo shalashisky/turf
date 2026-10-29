@@ -20,6 +20,7 @@ const ITEM_ICONS := {
 	"weed_seed": preload("res://art/seed_packet.png"),
 	"burger": preload("res://art/burger.png"),
 	"cocaine": preload("res://art/cocaine.png"),
+	"grow_tray": preload("res://art/grow_tray.png"),
 }
 const CASH_ICON := preload("res://art/cash.png")
 

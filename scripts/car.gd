@@ -21,6 +21,7 @@ enum Stage { ARRIVING, UNLOADING, RAMMING, LEAVING }
 @export var siren := false
 
 var stage := Stage.ARRIVING
+var _siren: AudioStreamPlayer3D
 
 ## Called as crew(point, target) for each of the crew getting out.
 var _crew: Callable
@@ -77,6 +78,7 @@ func _ai_drive(delta: float) -> void:
 			_ram(delta)
 		Stage.LEAVING:
 			speed = move_toward(speed, cruise_speed, 8.0 * delta)
+			_steer_toward(_exit_point, delta)
 			if global_position.distance_to(_exit_point) < 3.0:
 				queue_free()
 	_drive_step(delta)
@@ -99,21 +101,22 @@ func _ram(delta: float) -> void:
 	if player == null or _stage_left <= 0.0:
 		_leave()
 		return
-	var to_player := player.global_position - global_position
-	to_player.y = 0.0
-	if to_player.length() > 0.1:
-		var wanted := to_player.normalized()
-		var angle := heading.signed_angle_to(wanted, Vector3.UP)
-		heading = heading.rotated(Vector3.UP, clampf(angle, -ram_turn_rate * delta, ram_turn_rate * delta))
+	_steer_toward(player.global_position, delta)
 	speed = move_toward(speed, ram_speed, 10.0 * delta)
 
 
+## Turns toward `point` as fast as it can at this speed.
+func _steer_toward(point: Vector3, delta: float) -> void:
+	var to_point := point - global_position
+	to_point.y = 0.0
+	if to_point.length() > 0.1:
+		var angle := heading.signed_angle_to(to_point.normalized(), Vector3.UP)
+		heading = heading.rotated(Vector3.UP, clampf(angle, -1.0, 1.0) * turn_rate(ram_turn_rate) * delta)
+
+
+## Drives off for the way out, turning toward it as it goes.
 func _leave() -> void:
 	stage = Stage.LEAVING
-	var away := _exit_point - global_position
-	away.y = 0.0
-	if away.length() > 0.1:
-		heading = away.normalized()
 
 
 func _let_crew_out() -> void:
@@ -138,11 +141,14 @@ func _let_occupant_out(at: Vector3, by: Citizen) -> Citizen:
 
 
 func _on_wrecked() -> void:
+	if _siren:
+		_siren.stop()
 	for light in find_children("", "OmniLight3D", false, false):
 		light.queue_free()
 
 
 func _add_light_bar() -> void:
+	_siren = Sound.loop_on(self, &"siren_loop", -6.0)
 	for side in [-1, 1]:
 		var color := Color(1, 0.1, 0.1) if side < 0 else Color(0.15, 0.3, 1)
 		var lamp := MeshInstance3D.new()

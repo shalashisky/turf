@@ -1,7 +1,8 @@
 class_name Garage
 extends Node3D
 ## The player's lock-up garage. Its roll-up door opens when the player walks
-## up to it, or drives up to the doorway, and closes once they've gone. Parking the car inside fixes it up good
+## up to it or drives up to the doorway, or when someone drives the car out
+## of the bay (a thief, say), and closes once they've gone. Parking the car inside fixes it up good
 ## as new, and it's where the car turns up again the morning after it's been
 ## wrecked (PlayerCar). Marked "G" on the minimap.
 ##
@@ -74,7 +75,7 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	var near := _player_coming()
+	var near := _player_coming() or _car_coming_or_going()
 	if near != _open:
 		_set_open(near)
 	_fix_parked_car()
@@ -89,6 +90,17 @@ func _player_coming() -> bool:
 	# In a car: only when it's lined up in front of the doorway, or inside.
 	var from_door := to_local(player.global_position)
 	return absf(from_door.x) < width and from_door.z < drive_up_distance and from_door.z > -depth
+
+
+## Someone driving a car out of the bay. Cars going by outside don't count.
+func _car_coming_or_going() -> bool:
+	for car: Vehicle in get_tree().get_nodes_in_group("vehicles"):
+		if car.driver == null and car.street_driver == null:
+			continue
+		var from_door := to_local(car.global_position)
+		if absf(from_door.x) < width * 0.5 and from_door.z < 1.0 and from_door.z > -depth:
+			return true
+	return false
 
 
 ## Whether `car` is parked inside.
@@ -111,6 +123,7 @@ func _fix_parked_car() -> void:
 
 func _set_open(open: bool) -> void:
 	_open = open
+	Sound.play_at(&"rollup", global_position + Vector3.UP * 2.0, -4.0)
 	if _tween:
 		_tween.kill()
 	# Rolls up into a thin bundle under the lintel.

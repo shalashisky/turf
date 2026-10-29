@@ -32,6 +32,7 @@ var _out := false
 var _flames: GPUParticles3D
 var _light: OmniLight3D
 var _scorch: MeshInstance3D
+var _crackle: AudioStreamPlayer3D
 
 
 ## How hard the rain is coming down on `node`: Weather's rain if it's out in
@@ -111,6 +112,7 @@ func _ready() -> void:
 	_light.omni_range = radius + 4.0
 	_light.position.y = 1.0
 	add_child(_light)
+	_crackle = Sound.loop_on(self, &"fire_loop", -2.0)
 
 
 func _physics_process(delta: float) -> void:
@@ -120,6 +122,7 @@ func _physics_process(delta: float) -> void:
 	var strength := clampf(_left / DYING_TIME, 0.0, 1.0)
 	_flames.amount_ratio = strength
 	_light.light_energy = strength * randf_range(2.6, 3.6)
+	_crackle.volume_db = linear_to_db(maxf(strength, 0.001)) - 2.0
 	if _left <= 0.0:
 		_go_out()
 		return
@@ -141,6 +144,7 @@ func _physics_process(delta: float) -> void:
 func _go_out() -> void:
 	_out = true
 	_flames.emitting = false
+	_crackle.stop()
 	_light.light_energy = 0.0
 	var tween := create_tween()
 	tween.tween_interval(SCORCH_TIME)

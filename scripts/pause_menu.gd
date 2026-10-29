@@ -64,6 +64,8 @@ func _fill_legend() -> void:
 		_legend.add_child(name_label)
 	var places := Label.new()
 	places.text = "   H home   $ shop   G garage   C your car"
+	for neighbor: Neighbor in get_tree().get_nodes_in_group("all_neighbors"):
+		places.text += "   %s %s" % [neighbor.display_name.left(1), neighbor.display_name]
 	_legend.add_child(places)
 
 

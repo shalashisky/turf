@@ -12,6 +12,10 @@ func _ready() -> void:
 func _on_used(_by: Citizen) -> void:
 	if Dialogue.blocks_input() or DayCycle.busy:
 		return
+	if not get_tree().get_nodes_in_group("squatters").is_empty():
+		await Dialogue.say("", null, "Not with squatters in the house.")
+		Dialogue.close()
+		return
 	var pick := await Dialogue.choose("", null, "Sleep until morning?", ["Sleep", "Not yet"])
 	Dialogue.close()
 	if pick == 0:

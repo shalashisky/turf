@@ -17,6 +17,8 @@ enum AimMode { MOVE, STICK, MOUSE }
 
 ## Nothing gets thrown closer than this.
 const MIN_THROW_DISTANCE := 2.5
+## Things get set down this far in front, without the mouse to aim.
+const PLACE_AHEAD := 1.5
 ## A burger heals this much.
 const BURGER_HEALING := 50
 ## A bump of cocaine makes you this much faster, for this long.
@@ -95,15 +97,34 @@ func use_item(item: String) -> void:
 				return
 			var healed := mini(BURGER_HEALING, max_health - health)
 			health += healed
+			Sound.play(&"eat")
 			call_out("+%d" % healed, Color(0.55, 1.0, 0.45))
 		"cocaine":
 			rush_left = RUSH_TIME
+			Sound.play(&"sniff")
 			call_out("Whoa!", Color(0.85, 0.95, 1.0))
 		_:
 			return
 	WorldState.add_item(item, -1)
 	_use_cooldown_left = USE_COOLDOWN
 	_squash(Vector2(0.9, 1.12))
+
+
+## Sets `item` down where the grow house's grid shows it going. Nowhere else.
+func _place(item: String) -> void:
+	var furnishing := get_tree().get_first_node_in_group("furnishing")
+	if furnishing == null:
+		call_out("Set it up in your grow house.")
+		return
+	furnishing.place(item)
+
+
+## Where the player's aiming to set something down: the cursor when aiming
+## with the mouse, otherwise a step or so in front of them.
+func placement_point() -> Vector3:
+	if aim_mode == AimMode.MOUSE:
+		return _mouse_ground_point()
+	return global_position + facing * PLACE_AHEAD
 
 
 func _speed_boost() -> float:
@@ -215,6 +236,9 @@ func _choose_facing(move_dir: Vector3, delta: float) -> void:
 	if in_hand in WorldState.CONSUMABLES:
 		if Input.is_action_just_pressed("attack"):
 			use_item(in_hand)
+	elif in_hand in WorldState.PLACEABLES:
+		if Input.is_action_just_pressed("attack"):
+			_place(in_hand)
 	elif Input.is_action_just_pressed("attack") or (current_weapon().automatic and trigger):
 		attack()
 	_trigger_was_held = trigger

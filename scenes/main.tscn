@@ -21,7 +21,6 @@
 [ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="24_hud"]
 [ext_resource type="PackedScene" path="res://scenes/minimap.tscn" id="25_minimap"]
 [ext_resource type="Script" uid="uid://k56x1hxy0e3m" path="res://scripts/map_blip.gd" id="26_blip"]
-[ext_resource type="Script" uid="uid://b0eeklcd8w76i" path="res://scripts/territory.gd" id="27_territory"]
 [ext_resource type="PackedScene" path="res://scenes/npcs/agent.tscn" id="28_agent"]
 [ext_resource type="PackedScene" path="res://scenes/npcs/homeless.tscn" id="29_homeless"]
 [ext_resource type="Texture2D" uid="uid://pt4r8elkcwnv" path="res://art/homeless_1_8dir.png" id="30_homeless1"]
@@ -34,6 +33,9 @@
 [ext_resource type="PackedScene" path="res://scenes/garage.tscn" id="95_garage"]
 [ext_resource type="Script" path="res://scripts/rain.gd" id="96_rain"]
 [ext_resource type="PackedScene" path="res://scenes/npcs/druggie.tscn" id="97_druggie"]
+[ext_resource type="Script" path="res://scripts/turf_map.gd" id="98_turfs"]
+[ext_resource type="PackedScene" path="res://scenes/npcs/guy.tscn" id="99_guy"]
+[ext_resource type="Script" path="res://scripts/turf_attack.gd" id="100_attack"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.25, 0.2, 0.42, 1)
@@ -72,6 +74,9 @@ world_environment = NodePath("../WorldEnvironment")
 [node name="CityGrid" type="Node3D" parent="." unique_id=70170018]
 script = ExtResource("2_grid")
 
+[node name="Turfs" type="Node3D" parent="."]
+script = ExtResource("98_turfs")
+
 [node name="World" type="Node3D" parent="." unique_id=266125110 node_paths=PackedStringArray("target", "chunk_source")]
 script = ExtResource("90_streamer")
 target = NodePath("../Player")
@@ -85,34 +90,40 @@ streamer = NodePath("../World")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.15, 0)
 
 [node name="Player" parent="." unique_id=2016112685 node_paths=PackedStringArray("camera_rig") instance=ExtResource("3_player")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, -2.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -101, 0, -83.3)
 camera_rig = NodePath("../CameraRig")
 
 [node name="CameraRig" parent="." unique_id=77332290 node_paths=PackedStringArray("target") instance=ExtResource("4_camera")]
 target = NodePath("../Player")
 
 [node name="BaseballBat" parent="." unique_id=309196515 instance=ExtResource("8_pickup")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -92.5, 0, -82.6)
 weapon = ExtResource("9_bat")
 
 [node name="Knife" parent="." unique_id=969160700 instance=ExtResource("8_pickup")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 1.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -100, 0, -80.5)
 weapon = ExtResource("11_knife")
 
 [node name="BrassKnuckles" parent="." unique_id=1785729491 instance=ExtResource("8_pickup")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 0, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -90, 0, -80.5)
 weapon = ExtResource("12_brass")
 
 [node name="GrowHouseDoor" parent="." unique_id=767012067 instance=ExtResource("16_entrance")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -99, 0, -84)
 target_scene = "res://scenes/interiors/grow_house.tscn"
 target_entrance = "Street"
 
 [node name="GrowHouse" type="Marker3D" parent="." unique_id=1658604028 groups=["entrances"]]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, -2.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -99, 0, -82.6)
 
 [node name="RapDawg" parent="." unique_id=1584340464 instance=ExtResource("17_rap_dawg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 0, 2.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -88.5, 0, -83.4)
+
+[node name="Guy" parent="." instance=ExtResource("99_guy")]
+position = Vector3(-39.5, 0, -22.6)
+
+[node name="GuysDoor" parent="." instance=ExtResource("18_safe_door")]
+position = Vector3(-41, 0, -24)
 
 [node name="ShopDoor" parent="." unique_id=1453780098 instance=ExtResource("16_entrance")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.5, 0, -4)
@@ -123,7 +134,7 @@ target_entrance = "Street"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.5, 0, -2.6)
 
 [node name="RapDawgsDoor" parent="." unique_id=1067279242 instance=ExtResource("18_safe_door")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.8, 0, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -87, 0, -84)
 
 [node name="SpawnDoorFarWest" parent="." unique_id=1400394828 instance=ExtResource("10_door")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.5, 0, -4)
@@ -135,7 +146,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.5, 0, -4)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.5, 0, 16)
 
 [node name="Pistol" parent="." unique_id=554744360 instance=ExtResource("8_pickup")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, 1.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -83.5, 0, -88)
 weapon = ExtResource("20_pistol")
 
 [node name="Pedestrians" type="Node3D" parent="." unique_id=2145053953]
@@ -173,10 +184,13 @@ weapons = [ExtResource("23_nightstick"), ExtResource("23_nightstick"), ExtResour
 transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 14, 0, -1.75)
 
 [node name="Garage" parent="." instance=ExtResource("95_garage")]
-position = Vector3(18, 0, -4)
+position = Vector3(-95, 0, -84)
 
 [node name="Rain" type="Node3D" parent="."]
 script = ExtResource("96_rain")
+
+[node name="TurfAttack" type="CanvasLayer" parent="."]
+script = ExtResource("100_attack")
 
 [node name="Traffic" type="Node" parent="." node_paths=PackedStringArray("streamer")]
 script = ExtResource("93_traffic")
@@ -186,29 +200,6 @@ streamer = NodePath("../World")
 script = ExtResource("94_police")
 
 [node name="TurfWar" parent="." unique_id=219302171 instance=ExtResource("19_turf_war")]
-
-[node name="TurfNorthwest" type="Node3D" parent="." unique_id=647696572]
-script = ExtResource("27_territory")
-id = "northwest"
-area = Rect2(-139, -107, 137.5, 110)
-
-[node name="TurfNortheast" type="Node3D" parent="." unique_id=2079187818]
-script = ExtResource("27_territory")
-id = "northeast"
-starting_owner = &"crew"
-area = Rect2(-1.5, -107, 140.5, 110)
-
-[node name="TurfSouthwest" type="Node3D" parent="." unique_id=756275950]
-script = ExtResource("27_territory")
-id = "southwest"
-starting_owner = &"panthers"
-area = Rect2(-139, 3, 137.5, 104)
-
-[node name="TurfSoutheast" type="Node3D" parent="." unique_id=2090616727]
-script = ExtResource("27_territory")
-id = "southeast"
-starting_owner = &"yellows"
-area = Rect2(-1.5, 3, 140.5, 104)
 
 [node name="SpawnDoorPanthers" parent="." unique_id=666330173 instance=ExtResource("10_door")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.5, 0, 16)
@@ -227,7 +218,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, -4)
 [node name="Minimap" parent="." unique_id=53604312 instance=ExtResource("25_minimap")]
 
 [node name="HomeBlip" type="Marker3D" parent="." unique_id=1843720259]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, -3.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -99, 0, -84.5)
 script = ExtResource("26_blip")
 label = "H"
 color = Color(0.45, 0.95, 0.45, 1)

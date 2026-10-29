@@ -41,7 +41,10 @@ func _physics_process(delta: float) -> void:
 		else:
 			var car := hit.collider as Vehicle
 			if car:
+				Sound.play_at(&"bullet_car", hit.position, 3.0, 0.1)
 				car.damage(weapon.damage, shooter)
+			else:
+				Sound.play_at(&"ricochet", hit.position, -8.0, 0.2)
 			_spark(hit.position, hit.normal)
 		queue_free()
 		return

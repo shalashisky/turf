@@ -248,6 +248,7 @@ func _offered_weed(seller: Citizen) -> void:
 	else:
 		var price := _price()
 		WorldState.add_money(price)
+		Sound.play(&"cash", -2.0)
 		call_out("+$%d" % price, Color(0.55, 1.0, 0.45))
 	Factions.witness_deal(seller, global_position)
 

@@ -48,9 +48,8 @@ func _pause(citizen: Citizen, paused: bool) -> void:
 		return
 	if paused:
 		citizen.add_to_group("bubble_paused")
+		# Still shown, far off as they are, so their blip stays on the map.
 		citizen.process_mode = Node.PROCESS_MODE_DISABLED
-		citizen.visible = false
 	else:
 		citizen.remove_from_group("bubble_paused")
 		citizen.process_mode = Node.PROCESS_MODE_INHERIT
-		citizen.visible = true

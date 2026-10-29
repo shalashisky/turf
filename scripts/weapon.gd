@@ -35,6 +35,10 @@ enum SwingStyle {
 ## Walking speed is multiplied by this while holding it: heavy weapons slow
 ## you down, light ones speed you up.
 @export var move_speed_factor := 1.0
+## Sound (see Sound) of swinging, firing or throwing it.
+@export var sound := &"swing"
+## Sound of it landing a hit.
+@export var hit_sound := &"punch"
 
 @export_group("Contact")
 ## Damage dealt just by bumping into someone while holding it, like a knife.

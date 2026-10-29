@@ -25,6 +25,7 @@ faction = &"crew"
 can_carry_weapons = true
 respawns_after_death = true
 max_health = 200
+show_health_label = false
 drops_weapon_on_death = false
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]

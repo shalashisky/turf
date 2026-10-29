@@ -32,10 +32,13 @@ const ATTACK_ENERGY := 1.0
 const PLANT_WORK_ENERGY := 4.0
 
 ## How each inventory item is shown to the player.
-const ITEM_NAMES := {"weed": "Weed", "weed_seed": "Weed Seed", "burger": "Burger", "cocaine": "Cocaine"}
+const ITEM_NAMES := {"weed": "Weed", "weed_seed": "Weed Seed", "burger": "Burger", "cocaine": "Cocaine", "grow_tray": "Grow Tray"}
 ## Items used up by using them (the attack button, with one in hand). See
 ## Player.use_item().
 const CONSUMABLES: Array[String] = ["burger", "cocaine"]
+## Items set down in the grow house on its grid (the attack button, with one
+## in hand, inside). See Furnishing.
+const PLACEABLES: Array[String] = ["grow_tray"]
 ## Reputation runs from hated to best friends.
 const REPUTATION_RANGE := Vector2i(-250, 1000)
 
@@ -53,6 +56,12 @@ var reputation := {}
 ## after going indoors: {"transform", "health", "wrecked_on_day"}. Empty
 ## until the city scene is first left.
 var player_car := {}
+## The grow house: trays the player's set up, by tray id, at their position
+## in the room; whether the squatters who were living there are gone; and
+## which piles of trash have been cleared, by id.
+var grow_house_trays := {}
+var squatters_cleared := false
+var trash_cleared := {}
 
 ## Hydroponic trays by id: {growth, fed_until, updated_at}, all in minutes.
 var _trays := {}

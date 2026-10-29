@@ -11,6 +11,7 @@ cia_8dir.png: same layout, a CIA agent in a black suit and sunglasses.
 homeless_1_8dir.png, homeless_2_8dir.png: same layout, long beards and beanies.
 druggie_8dir.png: same layout, a pale, strung-out druggie in a stained hoodie.
 crew_8dir.png: same layout, one of the player's own crew, in the player's red.
+guy_8dir.png: same layout, Guy: a gaunt old session violinist in a faded denim shirt.
 rap_dawg_8dir.png: same layout, a dog in a beanie, for the Rap Dawg neighbor.
 clerk_8dir.png: same layout, a store clerk in a green apron.
 pedestrian_1_8dir.png .. pedestrian_3_8dir.png: same layout, passers-by in different outfits.
@@ -20,6 +21,7 @@ weed_bag.png: 12x12 knotted baggie of green buds, a hotbar icon.
 seed_packet.png: 10x12 paper seed packet with a leaf on it, a hotbar icon.
 burger.png: 12x10 burger, a hotbar icon.
 cocaine.png: 10x10 little baggie of white powder, a hotbar icon.
+grow_tray.png: 16x10 hydroponic tray with a sprout in it, a hotbar icon.
 molotov.png: 14x7 bottle lying neck-right, with a burning rag in the neck.
 tec9.png: 20x11 machine pistol pointing right: long receiver, perforated
   barrel shroud, and the magazine in front of the grip.
@@ -135,6 +137,14 @@ CREW = {
     "shoes": (235, 235, 235, 255),
     "skin": (120, 80, 55, 255),
     "hair": (200, 35, 45, 255),  # bandana
+}
+GUY = {
+    "jacket": (95, 125, 170, 255),  # faded denim shirt
+    "stripe": (125, 155, 195, 255),
+    "pants": (60, 55, 50, 255),
+    "shoes": (40, 35, 30, 255),
+    "skin": (215, 190, 140, 255),
+    "hair": (170, 165, 145, 255),
 }
 HOMELESS = [
     {"jacket": (110, 85, 60, 255), "stripe": (90, 70, 50, 255), "pants": (70, 70, 60, 255),
@@ -322,6 +332,7 @@ def main():
     write_png(art / "rap_dawg_8dir.png", draw_sheet(RAP_DAWG, arrow=False))
     write_png(art / "druggie_8dir.png", draw_sheet(DRUGGIE, arrow=False))
     write_png(art / "crew_8dir.png", draw_sheet(CREW, arrow=False))
+    write_png(art / "guy_8dir.png", draw_sheet(GUY, arrow=False))
     write_png(art / "clerk_8dir.png", draw_sheet(CLERK, arrow=False))
     for i, palette in enumerate(PEDESTRIANS):
         write_png(art / ("pedestrian_%d_8dir.png" % (i + 1)), draw_sheet(palette, arrow=False))
@@ -333,6 +344,7 @@ def main():
     write_png(art / "seed_packet.png", draw_seed_packet())
     write_png(art / "burger.png", draw_burger())
     write_png(art / "cocaine.png", draw_cocaine())
+    write_png(art / "grow_tray.png", draw_grow_tray())
     write_png(art / "nightstick.png", draw_nightstick())
     write_png(art / "cop_8dir.png", draw_sheet(COP, arrow=False))
     write_png(art / "shadow_blob.png", draw_blob(32))
@@ -519,6 +531,23 @@ def draw_cocaine():
     rect(image, 3, 5, 6, 7, powder)
     image[7][3] = shade
     image[7][6] = shade
+    add_outline(image)
+    return image
+
+
+def draw_grow_tray():
+    image = new_image(16, 10)
+    plastic = (60, 64, 70, 255)
+    edge = (95, 100, 108, 255)
+    water = (70, 120, 140, 255)
+    leaf = (80, 170, 60, 255)
+    rect(image, 1, 6, 12, 8, plastic)  # tray
+    rect(image, 1, 6, 12, 6, edge)
+    rect(image, 2, 7, 11, 7, water)
+    rect(image, 13, 3, 14, 8, (200, 200, 190, 255))  # nutrient jug
+    rect(image, 6, 3, 6, 5, leaf)  # sprout
+    rect(image, 4, 2, 5, 3, leaf)
+    rect(image, 7, 1, 8, 2, leaf)
     add_outline(image)
     return image
 

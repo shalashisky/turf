@@ -66,6 +66,9 @@ const ROUT_FADE_TIME := 1.0
 var routed := false
 ## Who they're following, for the player's crew.
 var following: Citizen
+## Sent to take one of the player's turfs (TurfAttack): they go for the player
+## and the crew on sight, and fighting them doesn't start a turf war.
+var raider := false
 var _crew_prompt: Interactable
 var _rout_left := 0.0
 var _fading := false
@@ -85,14 +88,15 @@ func _react_to_hit(attacker: Citizen) -> void:
 	# notice_fight, if they're free.
 	if not is_down:
 		start_fighting(attacker)
-	# Only the player sets off a turf war, and the gang's doors with it.
-	if attacker.is_in_group("player"):
+	# Only the player sets off a turf war, and the gang's doors with it. Not
+	# by fighting off raiders, though: that's a fight they started.
+	if attacker.is_in_group("player") and not raider:
 		get_tree().call_group("turf_wars", "start", faction)
 
 
 ## In a turf war, the player gets dragged out of any car they're hiding in.
 func _pulls_out_of_cars(who: Citizen) -> bool:
-	return who.is_in_group("player") and home != null and home.at_war and not routed
+	return who.is_in_group("player") and (raider or (home != null and home.at_war)) and not routed
 
 
 ## Rival gangs and the police get jumped on sight. The player only does once
@@ -101,6 +105,8 @@ func _pulls_out_of_cars(who: Citizen) -> bool:
 func _attacks_on_sight(other: Citizen) -> bool:
 	if routed:
 		return false
+	if raider and other.is_in_group("player"):
+		return true
 	if other.is_in_group("player"):
 		return home != null and home.at_war
 	return super(other)

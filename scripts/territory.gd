@@ -15,6 +15,8 @@ const RESTOCK_INTERVAL := 4.0
 @export var area := Rect2()
 ## Gang members kept out and about.
 @export var population := 6
+## How many of the gang the player has to take down to win it in a turf war.
+@export var kills_to_take := 10
 ## Chance that each one carries a weapon from weapon_pool instead of fists.
 @export_range(0.0, 1.0) var armed_chance := 0.35
 @export var weapon_pool: Array = [
@@ -33,8 +35,12 @@ const RESTOCK_INTERVAL := 4.0
 @export var raid_interval := Vector2(35.0, 70.0)
 @export var raid_size := Vector2i(2, 3)
 
-## Set by TurfWar while this turf is being fought over. No restocking then:
-## the gang's doors send reinforcements instead.
+## The gang coming for this turf, when it's one of the player's under attack
+## (TurfAttack). Empty otherwise.
+var under_attack_by := &""
+
+## Set by TurfWar while this turf is being fought over. Reinforcements keep
+## coming then, more slowly, and there are no raids.
 var at_war := false
 
 var _spots: Array[Vector3] = []
@@ -70,6 +76,11 @@ func contains(point: Vector3) -> bool:
 func center() -> Vector3:
 	var middle := area.get_center()
 	return Vector3(middle.x, 0.0, middle.y)
+
+
+## The nearest point in the turf to `from`: `from` itself, if it's inside.
+func nearest_point(from: Vector3) -> Vector3:
+	return Vector3(clampf(from.x, area.position.x, area.end.x), from.y, clampf(from.z, area.position.y, area.end.y))
 
 
 ## The turf `point` is in, if any.
@@ -152,8 +163,8 @@ func _process(delta: float) -> void:
 		return
 	_restock_left -= delta
 	if _restock_left <= 0.0:
-		_restock_left = RESTOCK_INTERVAL
-		if not at_war and _living_members().size() < population:
+		_restock_left = RESTOCK_INTERVAL * (2.0 if at_war else 1.0)
+		if _living_members().size() < population:
 			spawn_member()
 	_raid_left -= delta
 	if _raid_left <= 0.0 and not at_war:

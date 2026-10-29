@@ -34,6 +34,7 @@ func _on_body_entered(body: Node3D) -> void:
 	if not body.is_in_group("player") or is_queued_for_deletion():
 		return
 	WorldState.add_money(amount)
+	Sound.play(&"cash", -4.0)
 	_show_amount()
 	queue_free()
 

@@ -112,6 +112,10 @@ mesh = SubResource("floor_mesh")
 position = Vector3(0, -0.1, 0)
 shape = SubResource("floor_shape")
 
+[node name="ParticleFloor" type="GPUParticlesCollisionBox3D" parent="."]
+position = Vector3(0, -0.5, 0)
+size = Vector3(10.6, 1, 7.6)
+
 [node name="Walls" type="StaticBody3D" parent="."]
 
 [node name="North" type="MeshInstance3D" parent="Walls"]

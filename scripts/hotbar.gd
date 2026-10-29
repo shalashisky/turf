@@ -25,7 +25,7 @@ func _ready() -> void:
 	offset_top = -SLOT_SIZE - 14.0
 	offset_bottom = -14.0
 	Inventory.changed.connect(queue_redraw)
-	Inventory.selection_changed.connect(_show_name)
+	Inventory.selection_changed.connect(_on_selection_changed)
 	_show_name()
 
 
@@ -42,6 +42,11 @@ func _rush_left() -> float:
 	return player.get("rush_left") if player and player.get("rush_left") else 0.0
 
 
+func _on_selection_changed() -> void:
+	Sound.play(&"click", -8.0)
+	_show_name()
+
+
 func _show_name() -> void:
 	var stack: Variant = Inventory.selected_slot()
 	_name_text = Inventory.name_of(stack)
@@ -50,6 +55,8 @@ func _show_name() -> void:
 		_name_text += "  -  $%d a bag today, more on rival turf" % WorldState.weed_price()
 	elif item in WorldState.CONSUMABLES:
 		_name_text += "  -  attack (LMB / RT) to use"
+	elif item in WorldState.PLACEABLES:
+		_name_text += "  -  attack (LMB / RT) to place it in your grow house"
 	_name_left = NAME_TIME if _name_text != "" else 0.0
 	queue_redraw()
 

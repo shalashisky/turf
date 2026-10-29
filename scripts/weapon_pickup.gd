@@ -64,6 +64,8 @@ func try_give_to(citizen: Citizen) -> bool:
 	if not is_available_to(citizen):
 		return false
 	citizen.equip(weapon, ammo)
+	if citizen.is_in_group("player"):
+		Sound.play(&"pickup", -4.0)
 	queue_free()
 	return true
 

@@ -21,6 +21,7 @@ const OFFSCREEN_DISTANCE := 38.0
 ## Cars stop this far short of the player.
 const CAR_STOP_SHORT := 4.0
 
+## How many kills win the turf. Set from the turf when the war starts.
 @export var kills_to_win := 10
 @export var victory_message := "This turf is now ours!"
 ## How long the victory message stays up, in seconds.
@@ -46,9 +47,18 @@ var _car_left := 0.0
 @onready var _bar_label: Label = %BarLabel
 @onready var _message: Label = %Message
 @onready var _return_warning: Label = %ReturnWarning
+var _return_arrow: ScreenArrow
 
 
 func _ready() -> void:
+	# Under the "get back" countdown, pointing the way back to the fight.
+	_return_arrow = ScreenArrow.new()
+	_return_arrow.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_return_arrow.offset_left = -40.0
+	_return_arrow.offset_right = 40.0
+	_return_arrow.offset_top = 168.0
+	_return_arrow.offset_bottom = 248.0
+	add_child(_return_arrow)
 	add_to_group("turf_wars")
 	_bar_panel.visible = false
 	_message.visible = false
@@ -66,6 +76,7 @@ func start(gang: StringName) -> void:
 	kills = 0
 	enemy_faction = gang
 	territory = turf
+	kills_to_win = turf.kills_to_take
 	territory.at_war = true
 	_outside_left = -1.0
 	_car_left = first_car_delay
@@ -77,6 +88,7 @@ func start(gang: StringName) -> void:
 	_bar_panel.visible = true
 	_bar_panel.modulate.a = 0.0
 	create_tween().tween_property(_bar_panel, "modulate:a", 1.0, 0.3)
+	Sound.play(&"war_start")
 	started.emit()
 
 
@@ -110,7 +122,9 @@ func _watch_for_deserters(player: Citizen, delta: float) -> void:
 	if territory.contains(player.global_position):
 		_outside_left = -1.0
 		_return_warning.visible = false
+		_return_arrow.target = Vector3.INF
 		return
+	_return_arrow.target = territory.nearest_point(player.global_position)
 	if _outside_left < 0.0:
 		_outside_left = abandon_time
 	_outside_left -= delta
@@ -150,6 +164,7 @@ func _win() -> void:
 			door.shut_for_good()
 	territory.handed_over()
 	get_tree().call_group("safe_doors", "release")
+	Sound.play(&"victory")
 	won.emit()
 	create_tween().tween_property(_bar_panel, "modulate:a", 0.0, 0.5)
 	_message.text = victory_message
@@ -170,6 +185,7 @@ func _lose() -> void:
 	kills = 0
 	territory.at_war = false
 	_return_warning.visible = false
+	_return_arrow.target = Vector3.INF
 	for door in get_tree().get_nodes_in_group("spawn_doors"):
 		if door.territory == territory:
 			door.stand_down()

@@ -8,6 +8,7 @@ extends Node3D
 
 
 func _ready() -> void:
+	Sound.play_at(&"explosion", global_position, 6.0, 0.1)
 	for burst in [$Fire, $Smoke]:
 		burst.emitting = true
 	# A ball of fire that swells and burns away.

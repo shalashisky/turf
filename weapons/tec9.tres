@@ -22,3 +22,5 @@ max_ammo = 150
 projectile_speed = 30.0
 spread_degrees = 11.0
 automatic = true
+sound = &"tec9_shot"
+hit_sound = &"bullet_hit"

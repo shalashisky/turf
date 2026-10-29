@@ -22,6 +22,7 @@ const NEIGHBORS := &"neighbors"
 const CIA := &"cia"
 const HOMELESS := &"homeless"
 const DRUGGIES := &"druggies"
+const SQUATTERS := &"squatters"
 
 ## Gangs that hold turf. The player's crew counts as one.
 const GANGS: Array[StringName] = [PLAYER, DUMMY_GANG, PANTHERS, YELLOWS]
@@ -31,6 +32,7 @@ const RELATIONS := {
 	[POLICE, CIVILIANS]: Stance.FRIENDLY,
 	[POLICE, NEIGHBORS]: Stance.FRIENDLY,
 	[POLICE, HOMELESS]: Stance.FRIENDLY,
+	[SQUATTERS, PLAYER]: Stance.HOSTILE,
 }
 
 const NAMES := {
@@ -44,6 +46,14 @@ const NAMES := {
 	CIA: "CIA",
 	HOMELESS: "Homeless",
 	DRUGGIES: "Druggies",
+	SQUATTERS: "Squatters",
+}
+
+## What people on the street call each gang.
+const SHORT_NAMES := {
+	DUMMY_GANG: "The Dummies",
+	PANTHERS: "The Panthers",
+	YELLOWS: "The Yellows",
 }
 
 ## Gang member scenes, for gangs that hold turf and send people out of doors.
@@ -112,6 +122,11 @@ func witness_deal(seller: Citizen, at: Vector3) -> void:
 
 func is_gang(faction: StringName) -> bool:
 	return faction in GANGS
+
+
+## What people on the street call `faction`, like "The Dummies".
+func short_name(faction: StringName) -> String:
+	return SHORT_NAMES.get(faction, display_name(faction))
 
 
 func display_name(faction: StringName) -> String:

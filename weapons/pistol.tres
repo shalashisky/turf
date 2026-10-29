@@ -21,3 +21,5 @@ move_speed_factor = 0.95
 max_ammo = 40
 projectile_speed = 32.0
 spread_degrees = 3.0
+sound = &"gunshot"
+hit_sound = &"bullet_hit"

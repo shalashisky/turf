@@ -56,6 +56,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _shatter(at: Vector3) -> void:
+	Sound.play_at(&"glass", at)
 	var fire: Fire = FIRE.instantiate()
 	fire.thrower = thrower if is_instance_valid(thrower) else null
 	# Fuel runs down to the ground, whatever it hit.

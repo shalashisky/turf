@@ -59,20 +59,32 @@ func _draw() -> void:
 	if shown.has_area():
 		draw_texture_rect_region(_texture, Rect2((shown.position - source.position) * zoom, shown.size * zoom), shown)
 
+	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 150.0)
 	for turf: Territory in get_tree().get_nodes_in_group("territories"):
 		var turf_rect := Rect2(_to_view(turf.area.position, center), turf.area.size * zoom).intersection(view)
 		if turf_rect.has_area():
 			var tint := turf.color()
 			draw_rect(turf_rect, Color(tint, 0.32))
 			draw_rect(turf_rect, Color(tint, 0.9), false, 1.5)
+			# Fought over: flashing red in a turf war, or the attacking gang's
+			# color when one of the player's is under attack.
+			var flash := _flash_color(turf)
+			if flash.a > 0.0:
+				draw_rect(turf_rect, Color(flash, 0.2 + 0.5 * pulse))
+				draw_rect(turf_rect, Color(flash, 0.6 + 0.4 * pulse), false, 3.0)
 
 	var font := ThemeDB.fallback_font
 	for blip: MapBlip in get_tree().get_nodes_in_group("map_blips"):
 		if not blip.is_visible_in_tree():
 			continue
 		var at := _to_view(Vector2(blip.global_position.x, blip.global_position.z), center)
-		# Off the edge: pin it to the border, in its direction.
-		at = at.clamp(Vector2(8, 8), size - Vector2(8, 8))
+		# Off the edge: pin it to the border, along the line toward it, so
+		# blips off in different directions don't pile up in a corner.
+		var half := size * 0.5 - Vector2(8, 8)
+		var offset := at - size * 0.5
+		if absf(offset.x) > half.x or absf(offset.y) > half.y:
+			var fit := minf(half.x / maxf(absf(offset.x), 0.001), half.y / maxf(absf(offset.y), 0.001))
+			at = size * 0.5 + offset * fit
 		draw_circle(at, 7.0, Color.BLACK)
 		draw_circle(at, 6.0, blip.color)
 		draw_string(font, at + Vector2(-3.5, 4.0), blip.label, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.BLACK)
@@ -87,6 +99,15 @@ func _draw() -> void:
 	draw_colored_polygon(arrow, PLAYER_COLOR)
 	draw_polyline(arrow + PackedVector2Array([arrow[0]]), Color.BLACK, 1.0)
 	draw_rect(view, BORDER_COLOR, false, 3.0)
+
+
+func _flash_color(turf: Territory) -> Color:
+	if turf.at_war:
+		return Color(1.0, 0.1, 0.1)
+	if turf.under_attack_by != &"":
+		# Black doesn't flash on a dark map: lift it.
+		return Factions.COLORS.get(turf.under_attack_by, Color.WHITE).lightened(0.15)
+	return Color(0.0, 0.0, 0.0, 0.0)
 
 
 ## World x/z to a point on the minimap, with the player in the middle.

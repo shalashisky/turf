@@ -2,11 +2,11 @@
 
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/camera_rig.tscn" id="2_camera"]
-[ext_resource type="PackedScene" path="res://scenes/hydro_tray.tscn" id="5_tray"]
 [ext_resource type="PackedScene" path="res://scenes/entrance_door.tscn" id="6_door"]
 [ext_resource type="Shader" path="res://shaders/occlusion_cutout.gdshader" id="7_cutout"]
 [ext_resource type="PackedScene" path="res://scenes/bed.tscn" id="8_bed"]
 [ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="9_hud"]
+[ext_resource type="Script" path="res://scripts/furnishing.gd" id="10_furnishing"]
 
 [sub_resource type="Environment" id="env"]
 background_mode = 1
@@ -63,6 +63,10 @@ mesh = SubResource("floor_mesh")
 position = Vector3(0, -0.1, 0)
 shape = SubResource("floor_shape")
 
+[node name="ParticleFloor" type="GPUParticlesCollisionBox3D" parent="."]
+position = Vector3(0, -0.5, 0)
+size = Vector3(12.6, 1, 8.6)
+
 [node name="Walls" type="StaticBody3D" parent="."]
 
 [node name="North" type="MeshInstance3D" parent="Walls"]
@@ -97,51 +101,6 @@ mesh = SubResource("wall_short_mesh")
 position = Vector3(6.15, 1.5, 0)
 shape = SubResource("wall_short_shape")
 
-[node name="Tray_1" parent="." instance=ExtResource("5_tray")]
-position = Vector3(-3.5, 0, -0.9)
-tray_id = "grow_house_1"
-
-[node name="Tray_2" parent="." instance=ExtResource("5_tray")]
-position = Vector3(0.0, 0, -0.9)
-tray_id = "grow_house_2"
-
-[node name="Tray_3" parent="." instance=ExtResource("5_tray")]
-position = Vector3(3.5, 0, -0.9)
-tray_id = "grow_house_3"
-
-[node name="Tray_4" parent="." instance=ExtResource("5_tray")]
-position = Vector3(-3.5, 0, 1.7)
-tray_id = "grow_house_4"
-
-[node name="Tray_5" parent="." instance=ExtResource("5_tray")]
-position = Vector3(0.0, 0, 1.7)
-tray_id = "grow_house_5"
-
-[node name="Tray_6" parent="." instance=ExtResource("5_tray")]
-position = Vector3(3.5, 0, 1.7)
-tray_id = "grow_house_6"
-
-[node name="GrowLight_1" type="OmniLight3D" parent="."]
-position = Vector3(-3.5, 2.4, 0.4)
-light_color = Color(0.9, 0.35, 1, 1)
-light_energy = 1.8
-omni_range = 4.5
-omni_attenuation = 1.2
-
-[node name="GrowLight_2" type="OmniLight3D" parent="."]
-position = Vector3(0.0, 2.4, 0.4)
-light_color = Color(0.9, 0.35, 1, 1)
-light_energy = 1.8
-omni_range = 4.5
-omni_attenuation = 1.2
-
-[node name="GrowLight_3" type="OmniLight3D" parent="."]
-position = Vector3(3.5, 2.4, 0.4)
-light_color = Color(0.9, 0.35, 1, 1)
-light_energy = 1.8
-omni_range = 4.5
-omni_attenuation = 1.2
-
 [node name="FillLight" type="OmniLight3D" parent="."]
 position = Vector3(0, 3.6, 0.8)
 light_color = Color(1, 0.92, 0.98, 1)
@@ -153,6 +112,9 @@ position = Vector3(0, 2.6, -3.2)
 light_color = Color(1, 0.78, 0.55, 1)
 light_energy = 0.7
 omni_range = 5.0
+
+[node name="Furnishing" type="Node3D" parent="."]
+script = ExtResource("10_furnishing")
 
 [node name="ExitDoor" parent="." instance=ExtResource("6_door")]
 position = Vector3(0, 0, -4.0)
